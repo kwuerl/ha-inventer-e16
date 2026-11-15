@@ -109,7 +109,11 @@ jobs:
         with:
           python-version: "3.14"
       - name: Install Home Assistant
-        run: pip install homeassistant
+        run: |
+          # Home Assistant only runs in a virtual environment (or its container).
+          python -m venv "$RUNNER_TEMP/ha-venv"
+          "$RUNNER_TEMP/ha-venv/bin/pip" install homeassistant
+          echo "$RUNNER_TEMP/ha-venv/bin" >> "$GITHUB_PATH"
       - uses: actions/setup-java@d1374f8ac74474200d16ef8ecee22c7ae7a51880 # v6
         with:
           distribution: temurin

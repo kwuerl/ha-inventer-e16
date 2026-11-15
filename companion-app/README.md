@@ -123,11 +123,12 @@ Needs JDK 17 or newer and the Android SDK (compileSdk 37). For a release-signed 
 | `ScreenshotTest` | Renders the main screens (Robolectric); with `-Pscreenshots` into `app/build/outputs/roborazzi`, the source of `docs/screenshots` |
 
 For `HomeAssistantIntegrationTest`, [`tools/ha-test/start.sh`](tools/ha-test/start.sh) starts a
-throwaway Home Assistant (`pip install homeassistant` first) with the integration's config flow, a
-helper component that simulates discovery and re-authentication, and the stand-in controller, and
-prints the three variables:
+throwaway Home Assistant with the integration's config flow, a helper component that simulates
+discovery and re-authentication, and the stand-in controller, and prints the three variables.
+Home Assistant needs a virtual environment with the Python version it requires:
 
 ```bash
+python3 -m venv .venv && . .venv/bin/activate && pip install homeassistant
 eval "$(tools/ha-test/start.sh | grep '^export')"
 ./gradlew :app:testDebugUnitTest --tests '*HomeAssistantIntegrationTest*'
 ```

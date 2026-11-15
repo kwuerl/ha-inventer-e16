@@ -6,7 +6,8 @@
 # repository (real config flow, set-up stub without polling), a helper component that simulates
 # DHCP discovery and re-authentication, and the stand-in controller on 127.0.0.1:47820.
 #
-#   pip install homeassistant              # with the Python version Home Assistant requires
+#   python3 -m venv .venv && . .venv/bin/activate   # Python as Home Assistant requires
+#   pip install homeassistant
 #   companion-app/tools/ha-test/start.sh [config-dir]
 #
 # Prints HA_TEST_URL, HA_TEST_USER and HA_TEST_PASSWORD for the test; in GitHub Actions they go
