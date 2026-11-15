@@ -26,7 +26,7 @@ from homeassistant.helpers.storage import Store
 from homeassistant.util import dt as dt_util
 
 from .client import (FAN_DEVICE_TYPES, MAX_ZONES, POLARITY_EXTRACT, POLARITY_SUPPLY, E16AuthError,
-                     E16Client)
+                     E16Client, command_record)
 from .const import CONF_DEVICE_ID, CONF_PSK, DOMAIN
 from .sensor import override_active
 
@@ -229,8 +229,8 @@ class PolarityRestore:
         if (last := zone.get("last_override")) is None:
             # This controller doesn't report the command: the timer tells
             return not zone["timer"]
-        return (last["command"], last["speed"], last["mode"], last["zone"],
-                last["duration"]) != record or not override_active(last, zone)
+        return command_record(last) != record or not override_active(
+            last, zone, self.zones.ended.get(zone_id))
 
     @callback
     def async_check(self):

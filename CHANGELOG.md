@@ -19,6 +19,10 @@ chosen direction. Neither has run on a real controller yet.
   (`restore_polarity`, on by default). Failed attempts are retried, with a repair issue after
   three. The zone's *Last command* sensor shows `polarity_restore_pending`.
 - The zone's *Timer* sensor has the attribute `ends_at`.
+- *Last command* of a zone: a pause without end that the integration cancelled for that zone
+  (*on* or *Resume profile* with several zones) no longer reads as active again during a pause of
+  the profile. The controller keeps the zone's record after such a cancel (#22), so the integration
+  remembers that record, across restarts too, until the zone reports another command.
 - Diagnostics contain the time programs read and the polarity still to be put back.
 - Development: the Home Assistant tests use `pytest-homeassistant`, Home Assistant core's test
   package, pinned in `requirements_test.txt`, instead of the discontinued

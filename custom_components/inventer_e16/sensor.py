@@ -11,7 +11,7 @@ from homeassistant.helpers import entity_registry as er
 from homeassistant.helpers.event import async_track_time_change
 from homeassistant.util import dt as dt_util
 
-from .client import FAN_DEVICE_TYPES, FOREVER, PROGRAM_PROFILES
+from .client import FAN_DEVICE_TYPES, FOREVER, PROGRAM_PROFILES, command_record
 from .const import CONF_DEVICE_ID, DOMAIN
 from .entity import E16Entity, zone_has
 from .humidity import absolute_humidity, dew_point
@@ -142,9 +142,10 @@ class E16ZoneSensor(E16Entity, SensorEntity):
         pending = self.coordinator.config_entry.runtime_data.polarity.is_pending(self.zone_id)
         if not (value := self.zone.get("last_override")):
             return {"polarity_restore_pending": pending}
+        active = override_active(value, self.zone, self.coordinator.ended.get(self.zone_id))
         return {"speed": value["speed"], "fan_mode": value["mode"], "zone": value["zone"],
                 "duration_s": None if value["duration"] == FOREVER else value["duration"],
-                "active": override_active(value, self.zone), "polarity_restore_pending": pending}
+                "active": active, "polarity_restore_pending": pending}
 
 
 def program_attributes(zones, profile, now):
@@ -188,12 +189,13 @@ class E16TimeProgram(E16Entity, SensorEntity):
         return program_attributes(self.coordinator, self.zone["profile"], dt_util.now())
 
 
-def override_active(record, zone):
+def override_active(record, zone, ended=None):
     """Whether the last command still applies. An expired command keeps its record; only the
     remaining timer drops to 0 (issue #2). A cancel for one zone keeps the zone's record too (#22),
-    so a command without end applies only while the zone runs at its speed. Cancel and "fans off
-    ended" never apply."""
-    if record["command"] in NOT_ACTIVE:
+    so a command without end applies only while the zone runs at its speed, and not at all once
+    this integration has cancelled it for the zone (`ended`: the record left behind), because a
+    pause of the profile runs at speed 0 too. Cancel and "fans off ended" never apply."""
+    if record["command"] in NOT_ACTIVE or command_record(record) == ended:
         return False
     if record["duration"] == FOREVER:
         return zone["speed"] == record["speed"]

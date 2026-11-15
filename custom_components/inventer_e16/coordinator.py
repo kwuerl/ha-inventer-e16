@@ -14,14 +14,16 @@ from homeassistant.const import CONF_HOST
 from homeassistant.core import callback
 from homeassistant.exceptions import ConfigEntryAuthFailed, HomeAssistantError
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
+from homeassistant.helpers.storage import Store
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
 from homeassistant.util import dt as dt_util
 
 from .client import (CMD_CANCEL, CMD_GLOBAL_BOOST, CMD_GLOBAL_PAUSE, CMD_ZONE_SPEED_MODE,
                      CUSTOM_PROFILES, FAN_HEAT_RECOVERY, FAN_OFF, FAN_VENTILATION, PROGRAM_PROFILES,
-                     READ_MODE_TO_FAN, ZONE_FLAG_GLOBAL_COMMAND, ZONE_GLOBAL, E16AuthError, E16Client)
+                     READ_MODE_TO_FAN, ZONE_FLAG_GLOBAL_COMMAND, ZONE_GLOBAL, E16AuthError, E16Client,
+                     command_record)
 from .const import (CATALOG_BRAND, CATALOG_URL, CONF_FIRMWARE_CATALOG, CONF_PSK, CONF_SCAN_INTERVAL,
-                    DEFAULT_FIRMWARE_CATALOG, DEFAULT_SCAN_INTERVAL)
+                    DEFAULT_FIRMWARE_CATALOG, DEFAULT_SCAN_INTERVAL, DOMAIN)
 from .program import Program
 
 LOGGER = logging.getLogger(__package__)
@@ -34,6 +36,15 @@ CUSTOM_PROFILE_RETRY = timedelta(minutes=10)
 # Time programs of the profiles in use: read again once a day; after an error with the next check
 # (every 10 min, CUSTOM_PROFILE_RETRY)
 PROGRAM_INTERVAL = timedelta(hours=24)
+ENDED_STORAGE_VERSION = 1
+
+
+def ended_storage_key(entry):
+    return f"{DOMAIN}.{entry.entry_id}.ended"
+
+
+async def async_remove_ended(hass, entry):
+    await Store(hass, ENDED_STORAGE_VERSION, ended_storage_key(entry)).async_remove()
 
 
 @dataclass
@@ -70,6 +81,11 @@ class E16ZoneCoordinator(DataUpdateCoordinator):
         self.override_minutes = {}
         # When the zones were read last; their timers count from there
         self.polled_at = None
+        # Commands this integration cancelled for one zone, as {zone_id: record}. The controller
+        # keeps the zone's record after such a cancel (#22); it doesn't apply until the zone gets
+        # another record or another command. Kept in Home Assistant's storage.
+        self.ended = {}
+        self._ended_store = Store(hass, ENDED_STORAGE_VERSION, ended_storage_key(entry))
         # Custom profiles with a time program: the profile select offers them
         self.custom_profiles = set()
         self._unchecked = set()
@@ -102,18 +118,66 @@ class E16ZoneCoordinator(DataUpdateCoordinator):
         self.polled_at = dt_util.utcnow()
         return zones
 
-    async def _async_command(self, method, *args):
+    async def _async_run(self, method, *args):
+        """Send a command and return the zones read afterwards."""
         LOGGER.debug("e16 command %s%s", method.__name__, args)
         try:
             zones = await self.hass.async_add_executor_job(method, *args)
         except (E16AuthError, OSError, ValueError) as error:
             raise HomeAssistantError(f"e16 command failed: {error}") from error
         self.polled_at = dt_util.utcnow()
-        self.async_set_updated_data(zones)
+        return zones
+
+    async def _async_command(self, method, *args):
+        self.async_set_updated_data(await self._async_run(method, *args))
 
     async def async_override(self, command, speed=0, mode=FAN_OFF, zone=ZONE_GLOBAL, duration=0):
-        await self._async_command(
+        zones = await self._async_run(
             self.client.user_override, command, speed, mode, zone, duration, self.zone_ids)
+        # A command for the zone or for all zones counts, even with the record of an ended one
+        ended = {zone_id: record for zone_id, record in self.ended.items()
+                 if zone not in (zone_id, ZONE_GLOBAL)}
+        if command == CMD_CANCEL and zone != ZONE_GLOBAL and (
+                last := zones.get(zone, {}).get("last_override")):
+            # The zone keeps the record of the command just cancelled (#22). It has ended, also
+            # when the zone runs at its speed again, e.g. in a pause of the profile.
+            ended[zone] = command_record(last)
+        changed, self.ended = ended != self.ended, ended
+        # Taken over before the update, so that nothing shows the cancelled command as running
+        self.async_set_updated_data(zones)
+        if changed:
+            await self._async_save_ended()
+
+    async def async_load_ended(self):
+        stored = await self._ended_store.async_load()
+        zones = stored.get("zones") if isinstance(stored, dict) else None
+        for zone_id, record in (zones if isinstance(zones, dict) else {}).items():
+            try:
+                if len(record := tuple(int(value) for value in record)) != 5:
+                    raise ValueError("not a command record")
+                self.ended[int(zone_id)] = record
+            except (TypeError, ValueError):
+                LOGGER.warning("Stored command of zone %s can't be read: %s", zone_id, record)
+
+    async def _async_save_ended(self):
+        await self._ended_store.async_save(
+            {"zones": {str(zone_id): list(record) for zone_id, record in self.ended.items()}})
+
+    @callback
+    def async_track_commands(self):
+        """From the zone update handling: a zone that reports another record than the one this
+        integration ended runs another command."""
+        zones, stale = self.data or {}, []
+        for zone_id, record in self.ended.items():
+            if zone_id in zones:
+                last = zones[zone_id].get("last_override")
+                if last is None or command_record(last) != record:
+                    stale.append(zone_id)
+        if stale:
+            for zone_id in stale:
+                del self.ended[zone_id]
+            self.config_entry.async_create_background_task(
+                self.hass, self._async_save_ended(), "inventer_e16 ended commands")
 
     # Power button and quick commands. With one zone they are the app's commands for all zones.
     # With several zones they go to one zone only: a command for all zones ends or overrides the

@@ -184,6 +184,12 @@ writing ZoneRowField for zones other than zone 1. Whether a cancel for one zone 
 pause or boost in that zone is not known either; while flag bit 4 (global command) is set, the
 integration therefore sends the cancel for all zones.
 
+Because the zone keeps the record, the integration remembers the record a zone holds after the
+integration cancelled that zone, and counts it as ended until the zone reports another record or
+the integration sends that zone another command (kept in Home Assistant's storage). Otherwise a
+pause of the profile, which runs at speed 0 too, would make a cancelled pause without end look
+active again. A cancel sent by the app isn't known to the integration.
+
 ### 136 GlobalDataField
 
 | Id | Content | Encoding |

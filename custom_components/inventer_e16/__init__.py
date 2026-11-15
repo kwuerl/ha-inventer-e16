@@ -75,6 +75,9 @@ async def async_setup_entry(hass, entry):
     # What one-way commands changed before a restart goes back once they have ended
     data.polarity = polarity.PolarityRestore(hass, entry, data.zone, data.info)
     await data.polarity.async_load()
+    # Commands cancelled for one zone before a restart stay ended while their record stays
+    await data.zone.async_load_ended()
+    data.zone.async_track_commands()
     entry.runtime_data = data
     at_setup = layout(data.info.data["devices"], data.zone.zone_ids)
 
@@ -101,9 +104,11 @@ async def async_setup_entry(hass, entry):
 
     @callback
     def zones_updated():
-        # A zone runs another profile: the time program of the new one is read. A command has
-        # ended: the polarity it changed goes back.
+        # A zone runs another profile: the time program of the new one is read. A zone reports
+        # another command than one cancelled here. A command has ended: the polarity it changed
+        # goes back.
         data.zone.async_track_profiles()
+        data.zone.async_track_commands()
         data.polarity.async_check()
 
     data.zone.async_track_profiles()
@@ -133,8 +138,9 @@ async def async_unload_entry(hass, entry):
 
 
 async def async_remove_entry(hass, entry):
-    """A polarity still to be put back goes back now; its storage goes with the entry."""
+    """A polarity still to be put back goes back now; the storage goes with the entry."""
     await polarity.async_remove(hass, entry)
+    await coordinator.async_remove_ended(hass, entry)
 
 
 async def async_remove_config_entry_device(hass, entry, device):

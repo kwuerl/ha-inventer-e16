@@ -56,6 +56,15 @@ def test_override_active(record, timer, speed, active):
     assert override_active(record, {"timer": timer, "speed": speed}) is active
 
 
+def test_a_command_cancelled_here_does_not_apply_again():
+    # A pause of the profile runs at speed 0 as well
+    stopped = {"timer": 0, "speed": 0}
+    assert override_active(_pause(2), stopped) is True
+    assert override_active(_pause(2), stopped, ended=(5, 0, 3, 2, FOREVER)) is False
+    # Another record than the one ended counts as before
+    assert override_active(_pause(2), stopped, ended=(5, 0, 3, 3, FOREVER)) is True
+
+
 def test_time_program_profiles_are_the_ones_with_a_table():
     assert PROGRAM_PROFILES["bedroom"] == 1 and PROGRAM_PROFILES["custom_9"] == 15
     assert len(PROGRAM_PROFILES) == 15 and "cellar_heat_recovery" not in PROGRAM_PROFILES

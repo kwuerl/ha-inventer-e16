@@ -160,6 +160,75 @@ async def test_zone_cancel_ends_the_pause_without_end(hass, monkeypatch):
     assert _last_override(hass, "zone2_last_override") is False
 
 
+def _profile_pauses(zone):
+    """The profile's time program pauses the zone (the simulator doesn't run programs)."""
+    zone.schedule = (0, sim.STATUS_OFF)
+    zone.speed, zone.mode = zone.schedule
+
+
+async def test_a_pause_of_the_profile_is_not_the_pause_cancelled_before(hass, monkeypatch,
+                                                                        hass_storage):
+    # After a cancel for one zone the controller keeps the zone's record (#22), and a pause of the
+    # profile runs at speed 0 like the cancelled pause without end
+    controller = sim.FakeController(zones=2)
+    entry = await _setup(hass, monkeypatch, controller)
+    fan2, key = _entity(hass, "fan", "zone2_fan"), f"{DOMAIN}.{entry.entry_id}.ended"
+    await _call(hass, "fan", "turn_off", fan2)
+    await _call(hass, "fan", "turn_on", fan2)
+    assert hass_storage[key]["data"]["zones"] == {"2": [5, 0, client.FAN_OFF, 2, FOREVER]}
+    _profile_pauses(controller.zones[2])
+    await entry.runtime_data.zone.async_refresh()
+    assert hass.states.get(fan2).state == "off"
+    assert _last_override(hass, "zone2_last_override") is False
+    # Also after a restart during the pause of the profile
+    assert await hass.config_entries.async_unload(entry.entry_id)
+    assert await hass.config_entries.async_setup(entry.entry_id)
+    await hass.async_block_till_done(wait_background_tasks=True)
+    assert _last_override(hass, "zone2_last_override") is False
+    # Switched off again, with the same record: this pause applies
+    await _call(hass, "fan", "turn_off", fan2)
+    assert _last_override(hass, "zone2_last_override") is True
+    assert hass_storage[key]["data"]["zones"] == {}
+    # Resume profile cancels it like the fan
+    await _call(hass, "button", "press", _entity(hass, "button", "zone2_resume"))
+    assert _last_override(hass, "zone2_last_override") is False
+    from custom_components.inventer_e16.diagnostics import async_get_config_entry_diagnostics
+    diagnostics = await async_get_config_entry_diagnostics(hass, entry)
+    assert diagnostics["ended_commands"] == {2: (5, 0, client.FAN_OFF, 2, FOREVER)}
+
+
+async def test_a_cancelled_command_counts_again_once_the_zone_has_another(hass, monkeypatch,
+                                                                          hass_storage):
+    controller = sim.FakeController(zones=2)
+    entry = await _setup(hass, monkeypatch, controller)
+    fan2, key = _entity(hass, "fan", "zone2_fan"), f"{DOMAIN}.{entry.entry_id}.ended"
+    await _call(hass, "fan", "turn_off", fan2)
+    await _call(hass, "fan", "turn_on", fan2)
+    # While Home Assistant is away, the app boosts zone 2: noticed at the start
+    assert await hass.config_entries.async_unload(entry.entry_id)
+    controller.command(struct.pack("<BBBBI", 5, 4, client.FAN_HEAT_RECOVERY, 2, 900))
+    assert await hass.config_entries.async_setup(entry.entry_id)
+    await hass.async_block_till_done(wait_background_tasks=True)
+    assert hass_storage[key]["data"]["zones"] == {}
+    assert _last_override(hass, "zone2_last_override") is True
+    # Then the app pauses it without end, with the record of the pause cancelled before: it applies,
+    # also during a pause of the profile
+    controller.command(struct.pack("<BBBBI", 5, 0, client.FAN_OFF, 2, FOREVER))
+    _profile_pauses(controller.zones[2])
+    await entry.runtime_data.zone.async_refresh()
+    assert _last_override(hass, "zone2_last_override") is True
+
+
+async def test_with_one_zone_the_cancel_leaves_no_record_behind(hass, monkeypatch, hass_storage):
+    controller = sim.FakeController()
+    entry = await _setup(hass, monkeypatch, controller)
+    fan = _entity(hass, "fan", "fan")
+    await _call(hass, "fan", "turn_off", fan)
+    await _call(hass, "fan", "turn_on", fan)  # a cancel for all zones: the record is the cancel
+    assert entry.runtime_data.zone.ended == {}
+    assert hass.states.get(_entity(hass, "sensor", "last_override")).state == "cancel"
+
+
 async def test_timer_tells_when_the_command_ends(hass, monkeypatch, freezer):
     freezer.move_to("2026-11-18 12:00:00+00:00")
     controller = sim.FakeController(zones=2)

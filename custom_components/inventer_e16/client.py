@@ -203,6 +203,11 @@ def parse_override(data):
     return {"command": command, "speed": speed, "mode": mode, "zone": zone, "duration": duration}
 
 
+def command_record(record):
+    """A parsed UserOverride record as (command, speed, mode, zone, duration), e.g. to compare."""
+    return (record["command"], record["speed"], record["mode"], record["zone"], record["duration"])
+
+
 def parse_zone(data):
     """ZoneViewRowV5."""
     if len(data) < 74:
