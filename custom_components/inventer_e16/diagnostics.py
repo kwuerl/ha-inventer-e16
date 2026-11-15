@@ -16,5 +16,8 @@ async def async_get_config_entry_diagnostics(hass, entry):
         "options": dict(entry.options),
         "zones": data.zone.data,
         "custom_profiles": sorted(data.zone.custom_profiles),
+        "time_programs": {profile: {"read_at": cached.read_at.isoformat(),
+                                    "entries": cached.program.entries}
+                          for profile, cached in sorted(data.zone.programs.items())},
         "info": data.info.data,
     }

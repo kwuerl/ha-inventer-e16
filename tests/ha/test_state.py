@@ -8,7 +8,9 @@ from types import SimpleNamespace
 import pytest
 
 from custom_components.inventer_e16.client import FOREVER
-from custom_components.inventer_e16.fan import PROGRAM_PROFILES, E16Fan, program_record, program_response
+from custom_components.inventer_e16.fan import (PROGRAM_PROFILES, SET_MODE_MODES, E16Fan, program_record,
+                                                program_response)
+from custom_components.inventer_e16.program import MODES
 from custom_components.inventer_e16.sensor import override_active
 
 
@@ -75,3 +77,8 @@ def test_time_program_record_from_service_fields():
     assert record == struct.pack("<IBBBB", 6 * 3600 + 30 * 60, 0b0010001, 2, 3, 1)
     # Pause runs with speed 0, whatever was given
     assert program_record(time(22), ["sunday"], "pause", 4)[4:8] == bytes([64, 3, 0, 1])
+
+
+def test_time_program_modes_are_the_set_mode_keys():
+    # The entries use the command's mode table; program.py has no imports of its own
+    assert MODES == {value: key for key, value in SET_MODE_MODES.items()}

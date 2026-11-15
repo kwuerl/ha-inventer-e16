@@ -13,6 +13,7 @@ from homeassistant.helpers import config_validation as cv, entity_platform
 
 from . import client
 from .entity import E16Entity, MODELS
+from .program import DAYS, entry as program_entry
 from .select import HIDDEN_PROFILES, PROFILES
 
 HEAT_RECOVERY, VENTILATION = "heat_recovery", "ventilation"
@@ -28,10 +29,9 @@ HARDWARE_TYPES = {client.HW_MZCU: "controller", client.HW_FCU: "fan", client.HW_
 SET_MODE_MODES = {HEAT_RECOVERY: client.FAN_HEAT_RECOVERY, VENTILATION: client.FAN_VENTILATION,
                   "pause": client.FAN_OFF, "pause_open": client.FAN_STOP}
 # Service get_time_program: profiles 1-15 have a time program; entries use the set_mode keys
+# (program.MODES)
 PROGRAM_PROFILES = {key: value for value, key in {**PROFILES, **HIDDEN_PROFILES}.items()
                     if value in client.PROGRAM_PROFILES}
-PROGRAM_MODES = {value: key for key, value in SET_MODE_MODES.items()}
-DAYS = ("monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday")
 
 
 def program_record(start, days, mode, speed):
@@ -41,12 +41,6 @@ def program_record(start, days, mode, speed):
         speed = 0
     bits = sum(1 << DAYS.index(day) for day in set(days))
     return client.program_record(start.hour * 3600 + start.minute * 60, bits, fan_mode, speed)
-
-
-def program_entry(index, item):
-    return {"entry": index, "time": f"{item['seconds'] // 3600:02}:{item['seconds'] % 3600 // 60:02}",
-            "days": [day for bit, day in enumerate(DAYS) if item["days"] >> bit & 1],
-            "mode": PROGRAM_MODES.get(item["mode"], item["mode"]), "speed": item["speed"]}
 
 
 def program_response(profile, entries):
@@ -179,6 +173,8 @@ class E16Fan(E16Entity, FanEntity):
                 self.coordinator.client.get_time_program, value)
         except (client.E16AuthError, OSError, ValueError) as error:
             raise HomeAssistantError(f"Reading the time program failed: {error}") from error
+        # The time program sensors show it too
+        self.coordinator.async_set_program(value, entries)
         return program_response(value, entries)
 
     async def _write_program_entry(self, profile, entry, record):
@@ -190,7 +186,11 @@ class E16Fan(E16Entity, FanEntity):
             raise HomeAssistantError(f"Writing the time program failed: {error}") from error
         # The entry may change what the current profile does right now
         await self.coordinator.async_request_refresh()
-        if (value := PROGRAM_PROFILES[profile]) in client.CUSTOM_PROFILES:
+        value = PROGRAM_PROFILES[profile]
+        if value in self.coordinator.programs or value in self.coordinator.profiles_in_use():
+            # The time program sensors read the program again
+            self.coordinator.async_read_programs({value})
+        if value in client.CUSTOM_PROFILES:
             # Whether the profile select offers it
             self.coordinator.config_entry.async_create_background_task(
                 self.hass, self.coordinator.async_check_custom_profiles((value,)),

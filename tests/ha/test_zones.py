@@ -30,12 +30,12 @@ DATA = {"host": "192.0.2.1", "device_id": DEVICE_ID, "psk": "0102030405060708"}
 FOREVER = client.FOREVER
 
 
-async def _setup(hass, monkeypatch, controller):
+async def _setup(hass, monkeypatch, controller, options=None):
     monkeypatch.setattr(client.E16Client, "_connect", lambda self: controller.connect())
     # Only the client's clock: its sleeps move the simulated time
     monkeypatch.setattr(client, "time", SimpleNamespace(time=time.time, sleep=controller.advance))
     entry = MockConfigEntry(domain=DOMAIN, unique_id=DEVICE_ID, data=DATA, title="inVENTer Zone 1",
-                            minor_version=2)
+                            minor_version=2, options=options or {})
     entry.add_to_hass(hass)
     assert await hass.config_entries.async_setup(entry.entry_id)
     await hass.async_block_till_done()

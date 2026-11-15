@@ -339,6 +339,51 @@
       },
       "fan_reversal_interval": {
         "name": "Reversal interval"
+      },
+      "time_program": {
+        "name": "Time program",
+        "state": {
+          "default": "Default",
+          "bedroom": "Bedroom",
+          "childrens_room": "Children's room",
+          "bathroom": "Bathroom",
+          "living_room": "Living room",
+          "kitchen": "Kitchen",
+          "holiday": "Holiday",
+          "summer": "Summer",
+          "winter": "Winter",
+          "cellar_heat_recovery": "Cellar heat recovery",
+          "cellar_ventilation": "Cellar with ventilation",
+          "custom_1": "Custom profile 1",
+          "custom_2": "Custom profile 2",
+          "custom_3": "Custom profile 3",
+          "custom_4": "Custom profile 4",
+          "custom_5": "Custom profile 5",
+          "custom_6": "Custom profile 6",
+          "custom_7": "Custom profile 7",
+          "custom_8": "Custom profile 8",
+          "custom_9": "Custom profile 9"
+        },
+        "state_attributes": {
+          "has_program": {
+            "name": "Has a time program"
+          },
+          "entries": {
+            "name": "Entries"
+          },
+          "week": {
+            "name": "Week"
+          },
+          "current": {
+            "name": "Now"
+          },
+          "next": {
+            "name": "Next change"
+          },
+          "read_at": {
+            "name": "Read at"
+          }
+        }
       }
     },
     "binary_sensor": {

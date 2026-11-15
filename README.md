@@ -26,8 +26,9 @@ over your Wi-Fi, without the manufacturer's cloud.
   buttons.
 - **Firmware:** update entities for the Wi-Fi module, controller, fans and sensors. Installing
   updates stays with the official app.
-- **Time programs:** read and edit the schedules of the ventilation profiles (see
-  [Actions](#actions)).
+- **Time programs:** a *Time program* sensor per zone shows the program of the active profile as
+  a week, what runs now and the next change (see [Time program sensor](#time-program-sensor)).
+  The actions read and edit the programs of every profile (see [Actions](#actions)).
 - **Diagnostics:** fan power per speed level, reversal interval, and a diagnostics download with
   PSK, host and device ID redacted.
 
@@ -113,6 +114,26 @@ values. Zone 1 always has the indoor values; zones 2–4 only with an indoor sen
   indoor sensor moves, the integration reloads by itself. Zones and devices the controller no
   longer reports can be deleted on their device page.
 
+### Time program sensor
+
+Every zone has a *Time program* sensor. Its state is the zone's active profile (the same keys as
+the profile select), its attributes are the time program of that profile:
+
+| Attribute | Content |
+|---|---|
+| `has_program` | Whether the profile has a time program: `false` for the automatic, summer, winter and cellar profiles and for an empty program; `null` until it has been read once |
+| `entries` | The used entries, as `inventer_e16.get_time_program` returns them |
+| `week` | For each day (`monday` … `sunday`) the segments from `00:00` to `24:00` with `start`, `end`, `mode` and `speed`. A day starts with what the last entry before it set, Monday with Sunday's |
+| `current` | The segment that runs now |
+| `next` | The next change of mode or speed: `at` (ISO date and time), `mode`, `speed` |
+| `read_at` | When the program was read |
+
+The integration reads the program in the background: after a start, when a zone switches to
+another profile, after a change through the actions, and once a day. Every profile gets a
+connection of its own, and a profile that several zones use is read once. `current` and `next`
+follow the clock without asking the controller. Speed and mode commands are not part of the
+program: the sensor shows what the profile would run.
+
 ### Actions
 
 | Action | What it does |
@@ -183,7 +204,10 @@ until you switch it off.
 - Custom profiles cannot be created or renamed (their time programs can be edited). Which ones
   have a time program is read once a day and after a change through the actions, so a program
   created in the app can take up to a day to show up. Reading takes up to a few seconds per
-  profile; polls and commands wait for it.
+  profile; polls and commands wait for it. The same goes for the time program sensor: a program
+  changed in the app shows with the daily read, or when a zone switches to that profile.
+- How the controller runs a time program (an entry lasts until the next one, across midnight and
+  from Sunday to Monday) is our reading of the entries, not confirmed on a controller.
 - The polarity behaves differently between installations. On one controller (a pair with one fan
   on a cable), changing one fan switched the other fan of the pair along. On another (two zones with
   a pair each, #38), every fan switches on its own, so both fans of a pair can have the same

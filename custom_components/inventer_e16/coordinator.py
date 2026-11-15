@@ -2,24 +2,27 @@
 # Copyright (c) 2026 Tobias Krautkremer
 # Copyright (c) 2026 Markus Hennig
 """Zones in use every 30 s (option), maintenance/firmware/radio devices every 10 min, vendor catalog
-once a day."""
+once a day; time programs of the profiles in use in the background."""
 from dataclasses import dataclass, field
-from datetime import timedelta
+from datetime import datetime, timedelta
 import logging
+import time
 
 import aiohttp
 
 from homeassistant.const import CONF_HOST
+from homeassistant.core import callback
 from homeassistant.exceptions import ConfigEntryAuthFailed, HomeAssistantError
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
 from homeassistant.util import dt as dt_util
 
 from .client import (CMD_CANCEL, CMD_GLOBAL_BOOST, CMD_GLOBAL_PAUSE, CMD_ZONE_SPEED_MODE,
-                     CUSTOM_PROFILES, FAN_HEAT_RECOVERY, FAN_OFF, FAN_VENTILATION, READ_MODE_TO_FAN,
-                     ZONE_FLAG_GLOBAL_COMMAND, ZONE_GLOBAL, E16AuthError, E16Client)
+                     CUSTOM_PROFILES, FAN_HEAT_RECOVERY, FAN_OFF, FAN_VENTILATION, PROGRAM_PROFILES,
+                     READ_MODE_TO_FAN, ZONE_FLAG_GLOBAL_COMMAND, ZONE_GLOBAL, E16AuthError, E16Client)
 from .const import (CATALOG_BRAND, CATALOG_URL, CONF_FIRMWARE_CATALOG, CONF_PSK, CONF_SCAN_INTERVAL,
                     DEFAULT_FIRMWARE_CATALOG, DEFAULT_SCAN_INTERVAL)
+from .program import Program
 
 LOGGER = logging.getLogger(__package__)
 CATALOG_INTERVAL = timedelta(hours=24)
@@ -28,6 +31,9 @@ DEFAULT_OVERRIDE_MINUTES = 60
 # Which custom profiles have a time program: read once a day, after an error again 10 min later
 CUSTOM_PROFILE_INTERVAL = timedelta(hours=24)
 CUSTOM_PROFILE_RETRY = timedelta(minutes=10)
+# Time programs of the profiles in use: read again once a day; after an error with the next check
+# (every 10 min, CUSTOM_PROFILE_RETRY)
+PROGRAM_INTERVAL = timedelta(hours=24)
 
 
 @dataclass
@@ -37,6 +43,12 @@ class E16Data:
     main_device_id: str | None = None
     # Device registry id per zone; zone 1 is the main device
     zone_device_ids: dict = field(default_factory=dict)
+
+
+@dataclass
+class CachedProgram:
+    program: Program
+    read_at: datetime
 
 
 class E16ZoneCoordinator(DataUpdateCoordinator):
@@ -60,6 +72,14 @@ class E16ZoneCoordinator(DataUpdateCoordinator):
         self._checked_at = None
         self._checking = False
         self._check_failed = False
+        # Time programs of the profiles the zones run, {profile: CachedProgram}
+        self.programs = {}
+        self._program_queue = set()
+        self._program_failed = set()
+        self._program_reading = None
+        self._reading_programs = False
+        # Profile of each zone at the last update, to notice a change
+        self._profiles = None
 
     @property
     def multi_zone(self):
@@ -147,6 +167,76 @@ class E16ZoneCoordinator(DataUpdateCoordinator):
                     self.async_update_listeners()
         finally:
             self._checking = False
+
+    def profiles_in_use(self):
+        """The profiles with a time program that the zones in use run."""
+        zones = self.data or {}
+        return {zones[zone_id]["profile"] for zone_id in self.zone_ids
+                if zone_id in zones and zones[zone_id]["profile"] in PROGRAM_PROFILES}
+
+    @callback
+    def async_track_profiles(self):
+        """From the zone update handling: a zone that runs another profile than at the last update
+        gets the program of its new profile read."""
+        zones = self.data or {}
+        profiles = {zone_id: zones[zone_id]["profile"] for zone_id in self.zone_ids if zone_id in zones}
+        # Taken over first: a read can end before async_read_programs returns, and update again
+        before, self._profiles = self._profiles, profiles
+        if before is not None and (changed := {profile for zone_id, profile in profiles.items()
+                                               if zone_id in before and before[zone_id] != profile}):
+            self.async_read_programs(changed)
+
+    @callback
+    def async_read_programs(self, profiles=None):
+        """Read time programs in the background: `profiles`, or the due ones of the profiles in use
+        (not read yet, read a day ago, or the last read failed).
+
+        A program takes 32 requests (4-5 s), and polls and commands wait for the connection, so
+        every profile gets a connection of its own and is read once, even if several zones run it.
+        After an error the last program read stays."""
+        if profiles is None:
+            now = dt_util.utcnow()
+            profiles = {profile for profile in self.profiles_in_use()
+                        if profile in self._program_failed or profile not in self.programs
+                        or now - self.programs[profile].read_at >= PROGRAM_INTERVAL}
+            profiles.discard(self._program_reading)
+        self._program_queue |= {profile for profile in profiles if profile in PROGRAM_PROFILES}
+        if self._program_queue and not self._reading_programs:
+            self.config_entry.async_create_background_task(
+                self.hass, self._async_read_programs(), "inventer_e16 time programs")
+
+    async def _async_read_programs(self):
+        self._reading_programs = True  # the running read takes profiles added meanwhile too
+        try:
+            while self._program_queue:
+                profile = min(self._program_queue)
+                self._program_queue.discard(profile)
+                self._program_reading, started = profile, time.monotonic()
+                try:
+                    entries = await self.hass.async_add_executor_job(
+                        self.client.get_time_program, profile)
+                except (E16AuthError, OSError, ValueError) as error:
+                    if not self._program_failed:
+                        LOGGER.info("Reading the time program of profile %s failed, retrying in "
+                                    "10 minutes: %s", profile, error)
+                    # Probably not reachable: the other profiles wait for the next check as well
+                    self._program_failed |= {profile} | self._program_queue
+                    self._program_queue.clear()
+                    return
+                finally:
+                    self._program_reading = None
+                LOGGER.debug("Time program of profile %s read in %.1f s", profile,
+                             time.monotonic() - started)
+                self._program_failed.discard(profile)
+                self.async_set_program(profile, entries)
+        finally:
+            self._reading_programs = False
+
+    @callback
+    def async_set_program(self, profile, entries):
+        """Take over a profile's time program as read (32 entries, None for empty ones)."""
+        self.programs[profile] = CachedProgram(Program(entries), dt_util.utcnow())
+        self.async_update_listeners()
 
     async def async_set_zone_field(self, zone_id, field_id, raw):
         await self._async_command(self.client.set_zone_field, zone_id, field_id, raw, self.zone_ids)

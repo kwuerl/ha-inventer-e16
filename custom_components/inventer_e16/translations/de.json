@@ -339,6 +339,51 @@
       },
       "fan_reversal_interval": {
         "name": "Wendeintervall"
+      },
+      "time_program": {
+        "name": "Zeitprogramm",
+        "state": {
+          "default": "Standard",
+          "bedroom": "Schlafzimmer",
+          "childrens_room": "Kinderzimmer",
+          "bathroom": "Badezimmer",
+          "living_room": "Wohnzimmer",
+          "kitchen": "Küche",
+          "holiday": "Urlaub",
+          "summer": "Sommer",
+          "winter": "Winter",
+          "cellar_heat_recovery": "Wärmerückgewinnung im Keller",
+          "cellar_ventilation": "Taupunktlüftung",
+          "custom_1": "Benutzerdefiniertes Profil 1",
+          "custom_2": "Benutzerdefiniertes Profil 2",
+          "custom_3": "Benutzerdefiniertes Profil 3",
+          "custom_4": "Benutzerdefiniertes Profil 4",
+          "custom_5": "Benutzerdefiniertes Profil 5",
+          "custom_6": "Benutzerdefiniertes Profil 6",
+          "custom_7": "Benutzerdefiniertes Profil 7",
+          "custom_8": "Benutzerdefiniertes Profil 8",
+          "custom_9": "Benutzerdefiniertes Profil 9"
+        },
+        "state_attributes": {
+          "has_program": {
+            "name": "Hat ein Zeitprogramm"
+          },
+          "entries": {
+            "name": "Einträge"
+          },
+          "week": {
+            "name": "Woche"
+          },
+          "current": {
+            "name": "Jetzt"
+          },
+          "next": {
+            "name": "Nächster Wechsel"
+          },
+          "read_at": {
+            "name": "Gelesen um"
+          }
+        }
       }
     },
     "binary_sensor": {

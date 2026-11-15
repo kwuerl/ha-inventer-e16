@@ -1,18 +1,22 @@
 # SPDX-License-Identifier: MIT
 # Copyright (c) 2026 Tobias Krautkremer
-"""Zone values, maintenance dates, Wi-Fi and radio values, runtimes."""
+"""Zone values, time program, maintenance dates, Wi-Fi and radio values, runtimes."""
 from datetime import timedelta
 
 from homeassistant.components.sensor import SensorDeviceClass, SensorEntity, SensorStateClass
 from homeassistant.const import (PERCENTAGE, SIGNAL_STRENGTH_DECIBELS_MILLIWATT, EntityCategory,
                                  UnitOfDensity, UnitOfRatio, UnitOfTemperature, UnitOfTime)
+from homeassistant.core import callback
 from homeassistant.helpers import entity_registry as er
+from homeassistant.helpers.event import async_track_time_change
 from homeassistant.util import dt as dt_util
 
-from .client import FAN_DEVICE_TYPES, FOREVER
+from .client import FAN_DEVICE_TYPES, FOREVER, PROGRAM_PROFILES
 from .const import CONF_DEVICE_ID, DOMAIN
 from .entity import E16Entity, zone_has
 from .humidity import absolute_humidity, dew_point
+from .program import DAYS
+from .select import ALL_PROFILES
 
 PLAYBACK = {0: "play", 1: "pause", 2: "boost", 3: "off", 4: "shutdown", 5: "override"}
 # Zone status mode table (not the one of the UserOverride command)
@@ -63,6 +67,7 @@ async def async_setup_entry(hass, entry, async_add_entities):
                      if data.zone.data[zone_id][description[0]] is not None]
         entities += [E16ClimateSensor(data.zone, entry, *description, zone_id=zone_id)
                      for description in CLIMATE_SENSORS if zone_has(data, zone_id, description[0])]
+        entities.append(E16TimeProgram(data.zone, entry, "time_program", zone_id=zone_id))
     for prefix in ("filter", "service"):
         entities += [E16DueSensor(data.info, entry, prefix, as_date=True),
                      E16DueSensor(data.info, entry, prefix, as_date=False)]
@@ -130,6 +135,47 @@ class E16ZoneSensor(E16Entity, SensorEntity):
         return {"speed": value["speed"], "fan_mode": value["mode"], "zone": value["zone"],
                 "duration_s": None if value["duration"] == FOREVER else value["duration"],
                 "active": override_active(value, self.zone)}
+
+
+def program_attributes(zones, profile, now):
+    """The time program of `profile` as kept by the zone coordinator, at `now` (local time).
+    Profiles without a time program have empty lists; before the first read everything is None."""
+    if profile not in PROGRAM_PROFILES:
+        return {"has_program": False, "entries": [], "week": {day: [] for day in DAYS},
+                "current": None, "next": None, "read_at": None}
+    if (cached := zones.programs.get(profile)) is None:
+        return dict.fromkeys(("has_program", "entries", "week", "current", "next", "read_at"))
+    program = cached.program
+    return {"has_program": program.has_program, "entries": program.entries, "week": program.week,
+            "current": program.current(now), "next": program.next(now),
+            "read_at": dt_util.as_local(cached.read_at).isoformat(timespec="seconds")}
+
+
+class E16TimeProgram(E16Entity, SensorEntity):
+    """The zone's active profile, with its time program as attributes. The program is read in the
+    background (zone coordinator); what runs now and the next change follow the clock."""
+    _attr_device_class = SensorDeviceClass.ENUM
+    _attr_icon = "mdi:calendar-clock"
+    _attr_options = list(ALL_PROFILES.values())
+    # Up to 32 entries and a week of segments: not worth keeping in the history
+    _unrecorded_attributes = frozenset({"entries", "week", "current", "next", "read_at"})
+
+    async def async_added_to_hass(self):
+        await super().async_added_to_hass()
+        # Every minute, without asking the controller
+        self.async_on_remove(async_track_time_change(self.hass, self._async_tick, second=0))
+
+    @callback
+    def _async_tick(self, _now):
+        self.async_write_ha_state()
+
+    @property
+    def native_value(self):
+        return ALL_PROFILES.get(self.zone["profile"])
+
+    @property
+    def extra_state_attributes(self):
+        return program_attributes(self.coordinator, self.zone["profile"], dt_util.now())
 
 
 def override_active(record, zone):

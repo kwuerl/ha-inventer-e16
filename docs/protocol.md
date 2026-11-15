@@ -298,6 +298,11 @@ Verified on a real controller: all 15 tables read (the built-in profiles 1–6 h
 programs with 5–13 entries, custom profiles were empty); one entry of an unused custom profile
 written, read back and deleted, all other entries unchanged.
 
+How the controller runs the entries is not verified. The time program sensor assumes that an
+entry switches to its mode and speed at its start time on each of its days, and that this lasts
+until the next entry switches, across midnight and from Sunday to Monday. Of two entries with the
+same start time on the same day, it takes the one with the higher entry number.
+
 > ⚠️ Table **and** entry 65535 address the whole store (checksum over all tables, or one table with
 > entry 65535). According to the app analysis, the same record sent as `UPDATE` resets **all** time
 > programs – deliberately not tested. The client never sends ids outside 0–14 / 0–31.
