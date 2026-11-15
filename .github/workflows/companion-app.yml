@@ -16,8 +16,8 @@ on:
   workflow_dispatch:
 
 # Actions are pinned to commit SHAs (Dependabot keeps them current). Build and tests run with
-# read-only permissions and without secrets. Only the publish job, which runs no code from the
-# repository, can write (to attach the APK to a release) and sees the signing key.
+# read-only permissions and without secrets. Only the sign job sees the signing key, and only the
+# release job can write (to attach the APK to a release); neither runs code from the repository.
 permissions:
   contents: read
 
@@ -130,13 +130,14 @@ jobs:
         if: failure()
         run: tail -n 200 "$RUNNER_TEMP/ha/hass.log"
 
-  publish:
+  sign:
+    # Signs the APK with the release key. On a published release the signed APK goes on to the
+    # release job; on the other runs of this repository the signature is only checked, so broken
+    # secrets show up before a release. Pull requests and forks don't get the secrets.
     needs: build
-    if: github.event_name == 'release'
+    if: github.event_name != 'pull_request'
     runs-on: ubuntu-latest
     timeout-minutes: 10
-    permissions:
-      contents: write # attach the APK to the release
     steps:
       - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8
         with:
@@ -151,35 +152,67 @@ jobs:
           KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
         run: |
           if [ -z "$KEYSTORE_BASE64" ] || [ -z "$KEYSTORE_PASSWORD" ]; then
-            echo "::error::Release signing needs the secrets ANDROID_KEYSTORE_BASE64 and ANDROID_KEYSTORE_PASSWORD, see companion-app/README.md"
-            exit 1
+            message="Release signing needs the secrets ANDROID_KEYSTORE_BASE64 and ANDROID_KEYSTORE_PASSWORD, see companion-app/README.md"
+            if [ "$GITHUB_EVENT_NAME" = release ]; then echo "::error::$message"; exit 1; fi
+            echo "::notice::$message. Signing skipped."
+            exit 0
           fi
+          # Values pasted from a terminal usually end with a newline.
+          KEYSTORE_PASSWORD=$(printf '%s' "$KEYSTORE_PASSWORD" | tr -d '\r\n')
+          KEY_PASSWORD=$(printf '%s' "${KEY_PASSWORD:-$KEYSTORE_PASSWORD}" | tr -d '\r\n')
+          KEY_ALIAS=$(printf '%s' "${KEY_ALIAS:-release}" | tr -d '\r\n')
+          export KEYSTORE_PASSWORD KEY_PASSWORD
           keystore="$RUNNER_TEMP/release.keystore"
           trap 'rm -f "$keystore"' EXIT
-          printf '%s' "$KEYSTORE_BASE64" | base64 --decode > "$keystore"
-          key_pass=KEY_PASSWORD
-          [ -n "$KEY_PASSWORD" ] || key_pass=KEYSTORE_PASSWORD
-          tools=$(find "$ANDROID_HOME/build-tools" -mindepth 1 -maxdepth 1 -type d | sort -V | tail -1)
-          apk="EasyConnectCompanion-$VERSION.apk"
-          # apksigner replaces the debug signature of the build job.
-          "$tools/apksigner" sign --ks "$keystore" --ks-pass env:KEYSTORE_PASSWORD \
-            --ks-key-alias "${KEY_ALIAS:-release}" --key-pass "env:$key_pass" \
-            --v4-signing-enabled false --out "$apk" "dist/$apk"
-          certs=$("$tools/apksigner" verify --print-certs "$apk")
-          grep -E 'certificate (DN|SHA-256)' <<< "$certs"
-          if grep -q 'CN=Android Debug' <<< "$certs"; then
-            echo "::error::$apk is still signed with a debug key"
+          printf '%s' "$KEYSTORE_BASE64" | tr -d ' \r\n' | base64 --decode > "$keystore"
+          shopt -s nullglob
+          inputs=(dist/*.apk)
+          if [ ${#inputs[@]} -ne 1 ]; then
+            echo "::error::Expected one APK from the build job, got ${#inputs[@]}"
             exit 1
           fi
-          badging=$("$tools/aapt2" dump badging "$apk")
+          tools=$(find "$ANDROID_HOME/build-tools" -mindepth 1 -maxdepth 1 -type d | sort -V | tail -1)
+          name="EasyConnectCompanion-$VERSION.apk"
+          mkdir -p signed
+          # apksigner replaces the build job's debug signature.
+          if ! "$tools/apksigner" sign --ks "$keystore" --ks-pass env:KEYSTORE_PASSWORD \
+            --ks-key-alias "$KEY_ALIAS" --key-pass env:KEY_PASSWORD \
+            --v4-signing-enabled false --out "signed/$name" "${inputs[0]}"; then
+            echo "::error::Signing failed: check the keystore, its password and the key alias (default: release)"
+            exit 1
+          fi
+          certs=$("$tools/apksigner" verify --print-certs "signed/$name")
+          grep -E 'certificate (DN|SHA-256)' <<< "$certs"
+          if grep -q 'CN=Android Debug' <<< "$certs"; then
+            echo "::error::$name is still signed with a debug key"
+            exit 1
+          fi
+          badging=$("$tools/aapt2" dump badging "signed/$name")
           grep -F "versionName='$VERSION'" <<< "${badging%%$'\n'*}"
-          sha256sum "$apk" > "$apk.sha256"
-          cat "$apk.sha256"
+          cd signed
+          sha256sum "$name" > "$name.sha256"
+          cat "$name.sha256"
+      - if: github.event_name == 'release'
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
+        with:
+          name: companion-app-apk-signed
+          path: signed/
+          if-no-files-found: error
+
+  release:
+    needs: sign
+    if: github.event_name == 'release'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: write # attach the APK to the release
+    steps:
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8
+        with:
+          name: companion-app-apk-signed
+          path: signed
       - name: Attach to the release
         env:
           GH_TOKEN: ${{ github.token }}
           TAG: ${{ github.event.release.tag_name }}
-          VERSION: ${{ needs.build.outputs.version }}
-        run: |
-          gh release upload "$TAG" "EasyConnectCompanion-$VERSION.apk" "EasyConnectCompanion-$VERSION.apk.sha256" \
-            --clobber --repo "$GITHUB_REPOSITORY"
+        run: gh release upload "$TAG" signed/* --clobber --repo "$GITHUB_REPOSITORY"

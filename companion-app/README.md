@@ -87,10 +87,12 @@ latest Home Assistant with the integration's config flow. Each run keeps the APK
 for testing; it is signed with a throwaway debug key and can't update a release. When a GitHub
 release is published, the workflow checks that the tag is `v` plus the manifest version, signs the
 APK with the release key and attaches `EasyConnectCompanion-<version>.apk` and its SHA-256 to the
-release.
+release. On every other push it signs a copy too and throws it away, so a broken key shows up
+before a release.
 
 The release key comes from repository secrets (*Settings → Secrets and variables → Actions*). Only
-the publishing job sees them, and only `apksigner` uses them:
+the signing job sees them, only `apksigner` uses them, and a trailing newline from copying them out
+of a terminal doesn't matter:
 
 | Secret | Content |
 |---|---|
