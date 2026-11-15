@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Home Assistant is usually reached over plain HTTP on the local network
+  (http://192.168.x.y:8123), so cleartext traffic is allowed. User-installed CAs are
+  trusted too, for Home Assistant instances that use a private certificate authority.
+-->
+<network-security-config xmlns:tools="http://schemas.android.com/tools">
+    <base-config cleartextTrafficPermitted="true" tools:ignore="InsecureBaseConfiguration">
+        <trust-anchors>
+            <certificates src="system" />
+            <certificates src="user" tools:ignore="AcceptsUserCertificates" />
+        </trust-anchors>
+    </base-config>
+</network-security-config>

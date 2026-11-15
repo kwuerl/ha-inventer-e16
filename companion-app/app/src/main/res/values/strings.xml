@@ -1,0 +1,156 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Easy Connect Companion</string>
+    <string name="app_launcher_name">EC Companion</string>
+
+    <!-- Header -->
+    <string name="setup_title">Link your ventilation to Home Assistant</string>
+    <string name="footer_unofficial">Unofficial companion for the ha-inventer-e16 Home Assistant integration. Not affiliated with inVENTer GmbH.</string>
+    <string name="footer_version">Version %1$s, released together with ha-inventer-e16 %1$s.</string>
+    <string name="setup_subtitle">Pair the Easy Connect e16 over Bluetooth, sign in to Home Assistant, and the app sets up the inVENTer integration for you.</string>
+
+    <!-- Step 1: the controller -->
+    <string name="step_unit_title">Easy Connect e16</string>
+    <string name="step_unit_todo">Read the controller’s device ID and access key over Bluetooth. Nothing is changed on the controller.</string>
+    <string name="action_pair">Pair controller</string>
+    <string name="unit_device_id">Device ID %1$s</string>
+    <string name="unit_firmware">Firmware %1$s</string>
+    <string name="unit_serial">SN %1$s</string>
+    <string name="lan_searching">Looking for it on your Wi‑Fi…</string>
+    <string name="lan_stage_discovering">Asking the network…</string>
+    <string name="lan_stage_scanning">Scanning %1$s…</string>
+    <string name="lan_stage_checking">Checking %1$s…</string>
+    <string name="lan_found">On Wi‑Fi at %1$s</string>
+    <string name="lan_found_unverified">Using %1$s · not checked from this phone</string>
+    <string name="lan_not_found">Not found on your Wi‑Fi. The phone must be on the same network as the controller.</string>
+    <string name="lan_rejected">%1$s answered but rejected this key.</string>
+    <string name="lan_no_wifi">Connect the phone to your Wi‑Fi to find the controller.</string>
+    <string name="action_search_again">Search again</string>
+    <string name="action_enter_address">Enter address</string>
+    <string name="menu_more">More</string>
+    <string name="menu_show_key">Show key</string>
+    <string name="menu_change_address">Change address</string>
+    <string name="menu_pair_again">Pair again</string>
+    <string name="menu_forget_unit">Forget controller</string>
+
+    <!-- Step 2: Home Assistant -->
+    <string name="step_ha_title">Home Assistant</string>
+    <string name="step_ha_todo">Sign in to your Home Assistant. Adding an integration needs an administrator account.</string>
+    <string name="action_connect">Connect</string>
+    <string name="ha_connecting">Signing in to %1$s…</string>
+    <string name="ha_signed_in_as">Signed in as %1$s</string>
+    <string name="ha_admin">administrator</string>
+    <string name="ha_version">Home Assistant %1$s</string>
+    <string name="ha_not_admin">%1$s is not an administrator. Sign in with an admin account to add integrations.</string>
+    <string name="ha_integration_checking">Checking for the inVENTer integration…</string>
+    <string name="ha_integration_installed">%1$s integration installed</string>
+    <string name="ha_integration_missing">The inVENTer Easy Connect e16 integration isn’t installed. Install ha-inventer-e16 (HACS or Marketplace) and restart Home Assistant.</string>
+    <string name="ha_integration_unknown">Couldn’t check the integration: %1$s</string>
+    <string name="action_check_again">Check again</string>
+    <string name="action_get_integration">Get the integration</string>
+    <string name="menu_open_ha">Open Home Assistant</string>
+    <string name="menu_sign_out">Sign out</string>
+    <string name="ha_session_expired">Home Assistant ended the session. Sign in again.</string>
+    <string name="ha_user_unknown">your account</string>
+
+    <!-- Step 3: the integration -->
+    <string name="step_integration_title">Set up the integration</string>
+    <string name="integration_waiting">Starts by itself once the controller is paired and Home Assistant is connected.</string>
+    <string name="integration_needs_unit">Pair the controller</string>
+    <string name="integration_needs_address">Find the controller on Wi‑Fi</string>
+    <string name="integration_needs_ha">Connect Home Assistant</string>
+    <string name="integration_needs_admin">Use an administrator account</string>
+    <string name="integration_needs_install">Install the integration</string>
+    <string name="integration_step_starting">Starting the setup in Home Assistant…</string>
+    <string name="integration_step_validating">Home Assistant is checking the key with the controller…</string>
+    <string name="integration_step_updating">Updating the existing entry…</string>
+    <string name="integration_done_created">Added to Home Assistant as “%1$s”.</string>
+    <string name="integration_done_updated">Updated “%1$s” with the current address and key.</string>
+    <string name="integration_done_updated_untitled">Updated the existing entry with the current address and key.</string>
+    <string name="integration_done_already">Already set up in Home Assistant.</string>
+    <string name="integration_done_hint">Devices and entities are under Settings → Devices &amp; services.</string>
+    <string name="action_open_integration">Open in Home Assistant</string>
+    <string name="action_retry">Try again</string>
+    <string name="action_run_again">Run again</string>
+    <string name="error_cannot_connect">Home Assistant couldn’t reach the controller at %1$s on TCP 47820. Check that both are on the same network.</string>
+    <string name="error_invalid_key">The controller rejected the key Home Assistant tried. Pair again to read the key once more.</string>
+    <string name="error_not_admin">This account can’t add integrations. Sign in with an administrator.</string>
+    <string name="error_integration_missing">Home Assistant doesn’t offer the inVENTer integration. Install ha-inventer-e16 and restart Home Assistant.</string>
+    <string name="error_unsupported_form">The integration asks for “%1$s”, which this app can’t fill in. Finish the setup in Home Assistant.</string>
+    <string name="error_aborted">Home Assistant stopped the setup (%1$s).</string>
+    <string name="error_unexpected">Something unexpected happened: %1$s</string>
+    <string name="error_ha_unreachable">Home Assistant isn’t reachable right now.</string>
+
+    <!-- Pairing sheet -->
+    <string name="pairing_title">Pair the controller</string>
+    <string name="pairing_tip_app">Close the inVENTer app on nearby phones. The controller accepts only one Bluetooth connection.</string>
+    <string name="pairing_tip_button">Hold the mode button for about 4 seconds until the LED blinks blue.</string>
+    <string name="pairing_tip_wait">Stay close. The key is read automatically; nothing is written to the controller.</string>
+    <string name="pairing_status_permission">The app needs the Nearby devices permission to find the controller.</string>
+    <string name="pairing_status_denied">Without the Nearby devices permission the app can’t find the controller.</string>
+    <string name="pairing_status_bt_off">Bluetooth is off.</string>
+    <string name="pairing_status_location_off">This Android version needs Location turned on to scan for Bluetooth devices.</string>
+    <string name="pairing_status_scanning">Searching for the controller…</string>
+    <string name="pairing_status_pick">Several controllers found. Pick yours:</string>
+    <string name="pairing_signal_strong">Strong signal</string>
+    <string name="pairing_signal_good">Good signal</string>
+    <string name="pairing_signal_weak">Weak signal</string>
+    <string name="pairing_status_connecting">Connecting to %1$s…</string>
+    <string name="pairing_status_reconnecting">The controller restarted Bluetooth. Reconnecting…</string>
+    <string name="pairing_status_waiting">Connected. Now hold the mode button until the LED blinks blue.</string>
+    <string name="pairing_time_left">%1$s left</string>
+    <string name="pairing_status_reading">Pairing mode detected. Reading the key…</string>
+    <string name="pairing_status_success">Paired with %1$s</string>
+    <string name="pairing_error_not_found">No controller found. Put it into pairing mode (LED blinking blue), stay close and try again.</string>
+    <string name="pairing_error_timeout">The controller didn’t open pairing mode in time. Hold the mode button until the LED blinks blue and try again.</string>
+    <string name="pairing_error_generic">Pairing failed: %1$s</string>
+    <string name="action_allow">Allow</string>
+    <string name="action_open_settings">Open settings</string>
+    <string name="action_turn_on_bluetooth">Turn on Bluetooth</string>
+    <string name="action_turn_on_location">Turn on Location</string>
+    <string name="action_cancel">Cancel</string>
+    <string name="action_close">Close</string>
+    <string name="led_label_mode_button">Mode button</string>
+
+    <!-- Home Assistant picker -->
+    <string name="ha_picker_title">Connect Home Assistant</string>
+    <string name="ha_picker_found">On your network</string>
+    <string name="ha_picker_searching">Looking for Home Assistant…</string>
+    <string name="ha_picker_none">Nothing found automatically. Enter the address instead.</string>
+    <string name="ha_picker_address_label">Home Assistant address</string>
+    <string name="ha_picker_address_placeholder">http://homeassistant.local:8123</string>
+    <string name="ha_picker_hint">You’ll sign in on your Home Assistant’s own login page. The app only gets a token, never your password.</string>
+    <string name="action_continue">Continue</string>
+    <string name="error_bad_url">Enter an address like http://homeassistant.local:8123</string>
+    <string name="error_not_ha">That address doesn’t look like Home Assistant.</string>
+    <string name="error_ha_address_unreachable">Can’t reach that address from this phone.</string>
+
+    <!-- Login -->
+    <string name="login_title">Sign in to Home Assistant</string>
+    <string name="login_error_state">The sign-in reply didn’t match this request. Please try again.</string>
+    <string name="login_error_denied">Sign-in was cancelled (%1$s).</string>
+    <string name="login_error_page">Couldn’t load the sign-in page: %1$s</string>
+    <string name="login_error_ssl">Home Assistant’s certificate isn’t trusted on this phone.</string>
+
+    <!-- Key dialog -->
+    <string name="key_dialog_title">Access key</string>
+    <string name="key_dialog_body">Anyone on your network with this key can control the ventilation. Keep it private.</string>
+    <string name="key_psk_label">PSK (hex)</string>
+    <string name="key_device_id_label">Device ID</string>
+    <string name="action_copy">Copy</string>
+    <string name="action_done">Done</string>
+
+    <!-- Manual address -->
+    <string name="manual_host_title">Controller address</string>
+    <string name="manual_host_body">Enter the controller’s IP address from your router, and reserve it there so it doesn’t change.</string>
+    <string name="manual_host_label">IP address or host name</string>
+    <string name="manual_host_rejected">That device rejected the key.</string>
+    <string name="manual_host_unreachable">No answer on TCP 47820 from this phone. If the controller is on another network segment, Home Assistant may still reach it.</string>
+    <string name="action_use_anyway">Use anyway</string>
+    <string name="action_check">Check</string>
+
+    <!-- Forget -->
+    <string name="forget_title">Forget the controller?</string>
+    <string name="forget_body">The key is deleted from this phone. Home Assistant keeps its own copy.</string>
+    <string name="action_forget">Forget</string>
+</resources>

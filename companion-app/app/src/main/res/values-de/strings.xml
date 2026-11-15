@@ -1,0 +1,146 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Easy Connect Companion</string>
+    <string name="app_launcher_name">EC Companion</string>
+
+    <string name="setup_title">Lüftung mit Home Assistant verbinden</string>
+    <string name="footer_unofficial">Inoffizielle Begleit-App für die Home-Assistant-Integration ha-inventer-e16. Nicht mit der inVENTer GmbH verbunden.</string>
+    <string name="footer_version">Version %1$s, erscheint zusammen mit ha-inventer-e16 %1$s.</string>
+    <string name="setup_subtitle">Easy Connect e16 per Bluetooth koppeln, bei Home Assistant anmelden – die App richtet die inVENTer-Integration dann selbst ein.</string>
+
+    <string name="step_unit_title">Easy Connect e16</string>
+    <string name="step_unit_todo">Geräte-ID und Zugangsschlüssel der Bedieneinheit per Bluetooth auslesen. An der Bedieneinheit wird nichts verändert.</string>
+    <string name="action_pair">Bedieneinheit koppeln</string>
+    <string name="unit_device_id">Geräte-ID %1$s</string>
+    <string name="unit_firmware">Firmware %1$s</string>
+    <string name="unit_serial">SN %1$s</string>
+    <string name="lan_searching">Suche im WLAN…</string>
+    <string name="lan_stage_discovering">Frage das Netzwerk…</string>
+    <string name="lan_stage_scanning">Durchsuche %1$s…</string>
+    <string name="lan_stage_checking">Prüfe %1$s…</string>
+    <string name="lan_found">Im WLAN unter %1$s</string>
+    <string name="lan_found_unverified">Verwende %1$s · vom Telefon aus nicht geprüft</string>
+    <string name="lan_not_found">Im WLAN nicht gefunden. Das Telefon muss im selben Netzwerk sein wie die Bedieneinheit.</string>
+    <string name="lan_rejected">%1$s hat geantwortet, aber den Schlüssel abgelehnt.</string>
+    <string name="lan_no_wifi">Verbinde das Telefon mit deinem WLAN, um die Bedieneinheit zu finden.</string>
+    <string name="action_search_again">Erneut suchen</string>
+    <string name="action_enter_address">Adresse eingeben</string>
+    <string name="menu_more">Mehr</string>
+    <string name="menu_show_key">Schlüssel anzeigen</string>
+    <string name="menu_change_address">Adresse ändern</string>
+    <string name="menu_pair_again">Erneut koppeln</string>
+    <string name="menu_forget_unit">Bedieneinheit entfernen</string>
+
+    <string name="step_ha_title">Home Assistant</string>
+    <string name="step_ha_todo">Melde dich bei deinem Home Assistant an. Zum Hinzufügen einer Integration ist ein Administratorkonto nötig.</string>
+    <string name="action_connect">Verbinden</string>
+    <string name="ha_connecting">Anmeldung bei %1$s…</string>
+    <string name="ha_signed_in_as">Angemeldet als %1$s</string>
+    <string name="ha_admin">Administrator</string>
+    <string name="ha_version">Home Assistant %1$s</string>
+    <string name="ha_not_admin">%1$s ist kein Administrator. Melde dich mit einem Administratorkonto an, um Integrationen hinzuzufügen.</string>
+    <string name="ha_integration_checking">Suche die inVENTer-Integration…</string>
+    <string name="ha_integration_installed">Integration %1$s installiert</string>
+    <string name="ha_integration_missing">Die Integration inVENTer Easy Connect e16 ist nicht installiert. Installiere ha-inventer-e16 (HACS oder Marketplace) und starte Home Assistant neu.</string>
+    <string name="ha_integration_unknown">Integration konnte nicht geprüft werden: %1$s</string>
+    <string name="action_check_again">Erneut prüfen</string>
+    <string name="action_get_integration">Integration holen</string>
+    <string name="menu_open_ha">Home Assistant öffnen</string>
+    <string name="menu_sign_out">Abmelden</string>
+    <string name="ha_session_expired">Home Assistant hat die Sitzung beendet. Bitte erneut anmelden.</string>
+    <string name="ha_user_unknown">dein Konto</string>
+
+    <string name="step_integration_title">Integration einrichten</string>
+    <string name="integration_waiting">Startet von selbst, sobald die Bedieneinheit gekoppelt und Home Assistant verbunden ist.</string>
+    <string name="integration_needs_unit">Bedieneinheit koppeln</string>
+    <string name="integration_needs_address">Bedieneinheit im WLAN finden</string>
+    <string name="integration_needs_ha">Home Assistant verbinden</string>
+    <string name="integration_needs_admin">Administratorkonto verwenden</string>
+    <string name="integration_needs_install">Integration installieren</string>
+    <string name="integration_step_starting">Starte die Einrichtung in Home Assistant…</string>
+    <string name="integration_step_validating">Home Assistant prüft den Schlüssel bei der Bedieneinheit…</string>
+    <string name="integration_step_updating">Aktualisiere den vorhandenen Eintrag…</string>
+    <string name="integration_done_created">Als „%1$s“ zu Home Assistant hinzugefügt.</string>
+    <string name="integration_done_updated">„%1$s“ mit aktueller Adresse und aktuellem Schlüssel aktualisiert.</string>
+    <string name="integration_done_updated_untitled">Vorhandenen Eintrag mit aktueller Adresse und aktuellem Schlüssel aktualisiert.</string>
+    <string name="integration_done_already">Bereits in Home Assistant eingerichtet.</string>
+    <string name="integration_done_hint">Geräte und Entitäten findest du unter Einstellungen → Geräte &amp; Dienste.</string>
+    <string name="action_open_integration">In Home Assistant öffnen</string>
+    <string name="action_retry">Erneut versuchen</string>
+    <string name="action_run_again">Erneut ausführen</string>
+    <string name="error_cannot_connect">Home Assistant erreicht die Bedieneinheit unter %1$s (TCP 47820) nicht. Prüfe, ob beide im selben Netzwerk sind.</string>
+    <string name="error_invalid_key">Die Bedieneinheit hat den Schlüssel abgelehnt. Kopple erneut, um ihn noch einmal auszulesen.</string>
+    <string name="error_not_admin">Dieses Konto darf keine Integrationen hinzufügen. Melde dich als Administrator an.</string>
+    <string name="error_integration_missing">Home Assistant kennt die inVENTer-Integration nicht. Installiere ha-inventer-e16 und starte Home Assistant neu.</string>
+    <string name="error_unsupported_form">Die Integration fragt nach „%1$s“, das die App nicht ausfüllen kann. Schließe die Einrichtung in Home Assistant ab.</string>
+    <string name="error_aborted">Home Assistant hat die Einrichtung abgebrochen (%1$s).</string>
+    <string name="error_unexpected">Unerwarteter Fehler: %1$s</string>
+    <string name="error_ha_unreachable">Home Assistant ist gerade nicht erreichbar.</string>
+
+    <string name="pairing_title">Bedieneinheit koppeln</string>
+    <string name="pairing_tip_app">Schließe die inVENTer-App auf Telefonen in der Nähe. Die Bedieneinheit erlaubt nur eine Bluetooth-Verbindung.</string>
+    <string name="pairing_tip_button">Halte die Modustaste etwa 4 Sekunden gedrückt, bis die LED blau blinkt.</string>
+    <string name="pairing_tip_wait">Bleib in der Nähe. Der Schlüssel wird automatisch ausgelesen; an der Bedieneinheit wird nichts geschrieben.</string>
+    <string name="pairing_status_permission">Die App braucht die Berechtigung „Geräte in der Nähe“, um die Bedieneinheit zu finden.</string>
+    <string name="pairing_status_denied">Ohne die Berechtigung „Geräte in der Nähe“ kann die App die Bedieneinheit nicht finden.</string>
+    <string name="pairing_status_bt_off">Bluetooth ist aus.</string>
+    <string name="pairing_status_location_off">Diese Android-Version braucht eingeschalteten Standort, um nach Bluetooth-Geräten zu suchen.</string>
+    <string name="pairing_status_scanning">Suche die Bedieneinheit…</string>
+    <string name="pairing_status_pick">Mehrere Bedieneinheiten gefunden. Wähle deine aus:</string>
+    <string name="pairing_signal_strong">Starkes Signal</string>
+    <string name="pairing_signal_good">Gutes Signal</string>
+    <string name="pairing_signal_weak">Schwaches Signal</string>
+    <string name="pairing_status_connecting">Verbinde mit %1$s…</string>
+    <string name="pairing_status_reconnecting">Die Bedieneinheit hat Bluetooth neu gestartet. Verbinde erneut…</string>
+    <string name="pairing_status_waiting">Verbunden. Halte jetzt die Modustaste gedrückt, bis die LED blau blinkt.</string>
+    <string name="pairing_time_left">noch %1$s</string>
+    <string name="pairing_status_reading">Kopplungsmodus erkannt. Lese den Schlüssel…</string>
+    <string name="pairing_status_success">Gekoppelt mit %1$s</string>
+    <string name="pairing_error_not_found">Keine Bedieneinheit gefunden. Versetze sie in den Kopplungsmodus (LED blinkt blau), bleib in der Nähe und versuche es erneut.</string>
+    <string name="pairing_error_timeout">Die Bedieneinheit hat den Kopplungsmodus nicht rechtzeitig geöffnet. Halte die Modustaste, bis die LED blau blinkt, und versuche es erneut.</string>
+    <string name="pairing_error_generic">Kopplung fehlgeschlagen: %1$s</string>
+    <string name="action_allow">Erlauben</string>
+    <string name="action_open_settings">Einstellungen öffnen</string>
+    <string name="action_turn_on_bluetooth">Bluetooth einschalten</string>
+    <string name="action_turn_on_location">Standort einschalten</string>
+    <string name="action_cancel">Abbrechen</string>
+    <string name="action_close">Schließen</string>
+    <string name="led_label_mode_button">Modustaste</string>
+
+    <string name="ha_picker_title">Home Assistant verbinden</string>
+    <string name="ha_picker_found">In deinem Netzwerk</string>
+    <string name="ha_picker_searching">Suche Home Assistant…</string>
+    <string name="ha_picker_none">Nichts automatisch gefunden. Gib stattdessen die Adresse ein.</string>
+    <string name="ha_picker_address_label">Adresse von Home Assistant</string>
+    <string name="ha_picker_address_placeholder">http://homeassistant.local:8123</string>
+    <string name="ha_picker_hint">Du meldest dich auf der Anmeldeseite deines Home Assistant an. Die App erhält nur ein Token, nie dein Passwort.</string>
+    <string name="action_continue">Weiter</string>
+    <string name="error_bad_url">Gib eine Adresse wie http://homeassistant.local:8123 ein</string>
+    <string name="error_not_ha">Unter dieser Adresse läuft offenbar kein Home Assistant.</string>
+    <string name="error_ha_address_unreachable">Diese Adresse ist vom Telefon aus nicht erreichbar.</string>
+
+    <string name="login_title">Bei Home Assistant anmelden</string>
+    <string name="login_error_state">Die Antwort der Anmeldung passt nicht zu dieser Anfrage. Bitte erneut versuchen.</string>
+    <string name="login_error_denied">Anmeldung abgebrochen (%1$s).</string>
+    <string name="login_error_page">Die Anmeldeseite konnte nicht geladen werden: %1$s</string>
+    <string name="login_error_ssl">Dem Zertifikat von Home Assistant wird auf diesem Telefon nicht vertraut.</string>
+
+    <string name="key_dialog_title">Zugangsschlüssel</string>
+    <string name="key_dialog_body">Wer diesen Schlüssel hat, kann die Lüftung aus deinem Netzwerk steuern. Halte ihn geheim.</string>
+    <string name="key_psk_label">PSK (hex)</string>
+    <string name="key_device_id_label">Geräte-ID</string>
+    <string name="action_copy">Kopieren</string>
+    <string name="action_done">Fertig</string>
+
+    <string name="manual_host_title">Adresse der Bedieneinheit</string>
+    <string name="manual_host_body">Gib die IP-Adresse der Bedieneinheit aus deinem Router ein und reserviere sie dort, damit sie gleich bleibt.</string>
+    <string name="manual_host_label">IP-Adresse oder Hostname</string>
+    <string name="manual_host_rejected">Dieses Gerät hat den Schlüssel abgelehnt.</string>
+    <string name="manual_host_unreachable">Keine Antwort auf TCP 47820 vom Telefon aus. Liegt die Bedieneinheit in einem anderen Netzsegment, erreicht Home Assistant sie vielleicht trotzdem.</string>
+    <string name="action_use_anyway">Trotzdem verwenden</string>
+    <string name="action_check">Prüfen</string>
+
+    <string name="forget_title">Bedieneinheit entfernen?</string>
+    <string name="forget_body">Der Schlüssel wird von diesem Telefon gelöscht. Home Assistant behält seine eigene Kopie.</string>
+    <string name="action_forget">Entfernen</string>
+</resources>

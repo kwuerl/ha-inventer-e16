@@ -35,8 +35,8 @@ over your Wi-Fi, without the manufacturer's cloud.
 
 - Easy Connect e16 with Wi-Fi module, connected to your network with the official app.
 - Home Assistant 2026.9 or newer.
-- Once, to read the device key: a phone with a Bluetooth app, or a computer with Bluetooth LE and
-  Python.
+- Once, to read the device key: an Android phone with the companion app, a phone with a Bluetooth
+  app, or a computer with Bluetooth LE and Python.
 
 ## Installation
 
@@ -65,6 +65,10 @@ python tools/e16_onboard.py read
 
 Reading changes nothing on the controller, and the official app keeps working. Keep the PSK
 private: anyone on your network who has it can control the ventilation.
+
+**On Android**, the [companion app](companion-app/README.md) does this step and the next one for
+you: it reads device ID and PSK over Bluetooth, signs in to Home Assistant and adds the
+controller. Every release comes with its APK.
 
 ### 3. Add the controller
 
@@ -211,7 +215,8 @@ pytest tests/ha                         # Home Assistant tests, Linux/macOS
 ```
 
 The protocol client (`custom_components/inventer_e16/client.py`) has no Home Assistant
-dependency and can be used on its own.
+dependency and can be used on its own. The Android companion app is in
+[`companion-app/`](companion-app/README.md) (`./gradlew :app:testDebugUnitTest`).
 
 ## License
 
@@ -219,8 +224,8 @@ dependency and can be used on its own.
 
 "inVENTer" and "Easy Connect" are trademarks of their owner and are used here only to say which
 devices this software works with. This repository contains no code, images, logos or other
-material from the manufacturer or its app. The icon in `custom_components/inventer_e16/brand/` is
-an original design for this project.
+material from the manufacturer or its app. The icon in `custom_components/inventer_e16/brand/` and
+the companion app's icon and illustrations are original designs for this project.
 
 ## Disclaimer
 

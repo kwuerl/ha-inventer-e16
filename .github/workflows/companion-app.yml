@@ -1,0 +1,181 @@
+name: Companion app
+
+on:
+  push:
+    paths:
+      - companion-app/**
+      - custom_components/inventer_e16/**
+      - .github/workflows/companion-app.yml
+  pull_request:
+    paths:
+      - companion-app/**
+      - custom_components/inventer_e16/**
+      - .github/workflows/companion-app.yml
+  release:
+    types: [published]
+  workflow_dispatch:
+
+# Actions are pinned to commit SHAs (Dependabot keeps them current). Build and tests run with
+# read-only permissions and without secrets. Only the publish job, which runs no code from the
+# repository, can write (to attach the APK to a release) and sees the signing key.
+permissions:
+  contents: read
+
+concurrency:
+  group: companion-app-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name != 'release' }}
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    defaults:
+      run:
+        working-directory: companion-app
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+      - name: Version
+        id: version
+        run: |
+          # The app carries the integration's version; a release tag must match it.
+          version=$(python3 -c 'import json; print(json.load(open("../custom_components/inventer_e16/manifest.json"))["version"])')
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+          echo "manifest.json version: $version"
+          if [ "$GITHUB_EVENT_NAME" = release ] && [ "$GITHUB_REF_NAME" != "v$version" ] && [ "$GITHUB_REF_NAME" != "$version" ]; then
+            echo "::error::Release tag $GITHUB_REF_NAME does not match version $version in manifest.json"
+            exit 1
+          fi
+      - uses: actions/setup-java@d1374f8ac74474200d16ef8ecee22c7ae7a51880 # v6
+        with:
+          distribution: temurin
+          java-version: "21"
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7
+        with:
+          python-version: "3.13" # TLS-PSK stand-in controller for the tests (tools/mock_e16.py)
+      - uses: gradle/actions/setup-gradle@8da46b539cd8fe6ab27ca75128919a18d757604c # v6
+      - name: Test, lint and build
+        env:
+          REQUIRE_MOCK_E16: "1"
+        run: ./gradlew testDebugUnitTest lintDebug assembleRelease
+      - name: Check version and package the APK
+        env:
+          VERSION: ${{ steps.version.outputs.version }}
+          SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+        run: |
+          apk=app/build/outputs/apk/release/app-release.apk
+          tools=$(find "$ANDROID_HOME/build-tools" -mindepth 1 -maxdepth 1 -type d | sort -V | tail -1)
+          badging=$("$tools/aapt2" dump badging "$apk")
+          package=${badging%%$'\n'*}
+          echo "$package"
+          name=$(sed -n "s/.*versionName='\([^']*\)'.*/\1/p" <<< "$package")
+          if [ "$name" != "$VERSION" ]; then
+            echo "::error::APK versionName $name differs from manifest.json version $VERSION"
+            exit 1
+          fi
+          # Release builds are signed again with the release key by the publish job. Other
+          # builds keep the runner's throwaway debug key: fine for testing, but they can't
+          # update an installed release.
+          if [ "$GITHUB_EVENT_NAME" = release ]; then out="EasyConnectCompanion-$VERSION.apk"
+          else out="EasyConnectCompanion-$VERSION-${SHA::7}-test.apk"; fi
+          mkdir -p dist
+          cp "$apk" "dist/$out"
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
+        with:
+          name: companion-app-apk
+          path: companion-app/dist/
+          if-no-files-found: error
+      - name: Upload test and lint reports
+        if: failure()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
+        with:
+          name: companion-app-reports
+          path: |
+            companion-app/app/build/reports/
+            companion-app/app/build/test-results/
+
+  home-assistant:
+    name: Home Assistant end to end
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7
+        with:
+          python-version: "3.14"
+      - name: Install Home Assistant
+        run: pip install homeassistant
+      - uses: actions/setup-java@d1374f8ac74474200d16ef8ecee22c7ae7a51880 # v6
+        with:
+          distribution: temurin
+          java-version: "21"
+      - uses: gradle/actions/setup-gradle@8da46b539cd8fe6ab27ca75128919a18d757604c # v6
+      - name: Start Home Assistant with the integration and a stand-in controller
+        run: companion-app/tools/ha-test/start.sh "$RUNNER_TEMP/ha"
+      - name: Sign in and set up the integration like the app
+        working-directory: companion-app
+        env:
+          REQUIRE_HA_TEST: "1"
+        run: ./gradlew testDebugUnitTest --tests '*HomeAssistantIntegrationTest*'
+      - name: Home Assistant log
+        if: failure()
+        run: tail -n 200 "$RUNNER_TEMP/ha/hass.log"
+
+  publish:
+    needs: build
+    if: github.event_name == 'release'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: write # attach the APK to the release
+    steps:
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8
+        with:
+          name: companion-app-apk
+          path: dist
+      - name: Sign with the release key
+        env:
+          VERSION: ${{ needs.build.outputs.version }}
+          KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+        run: |
+          if [ -z "$KEYSTORE_BASE64" ] || [ -z "$KEYSTORE_PASSWORD" ]; then
+            echo "::error::Release signing needs the secrets ANDROID_KEYSTORE_BASE64 and ANDROID_KEYSTORE_PASSWORD, see companion-app/README.md"
+            exit 1
+          fi
+          keystore="$RUNNER_TEMP/release.keystore"
+          trap 'rm -f "$keystore"' EXIT
+          printf '%s' "$KEYSTORE_BASE64" | base64 --decode > "$keystore"
+          key_pass=KEY_PASSWORD
+          [ -n "$KEY_PASSWORD" ] || key_pass=KEYSTORE_PASSWORD
+          tools=$(find "$ANDROID_HOME/build-tools" -mindepth 1 -maxdepth 1 -type d | sort -V | tail -1)
+          apk="EasyConnectCompanion-$VERSION.apk"
+          # apksigner replaces the debug signature of the build job.
+          "$tools/apksigner" sign --ks "$keystore" --ks-pass env:KEYSTORE_PASSWORD \
+            --ks-key-alias "${KEY_ALIAS:-release}" --key-pass "env:$key_pass" \
+            --v4-signing-enabled false --out "$apk" "dist/$apk"
+          certs=$("$tools/apksigner" verify --print-certs "$apk")
+          grep -E 'certificate (DN|SHA-256)' <<< "$certs"
+          if grep -q 'CN=Android Debug' <<< "$certs"; then
+            echo "::error::$apk is still signed with a debug key"
+            exit 1
+          fi
+          badging=$("$tools/aapt2" dump badging "$apk")
+          grep -F "versionName='$VERSION'" <<< "${badging%%$'\n'*}"
+          sha256sum "$apk" > "$apk.sha256"
+          cat "$apk.sha256"
+      - name: Attach to the release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ github.event.release.tag_name }}
+          VERSION: ${{ needs.build.outputs.version }}
+        run: |
+          gh release upload "$TAG" "EasyConnectCompanion-$VERSION.apk" "EasyConnectCompanion-$VERSION.apk.sha256" \
+            --clobber --repo "$GITHUB_REPOSITORY"

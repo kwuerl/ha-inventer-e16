@@ -5,13 +5,15 @@ The integration needs three values: the controller's **IP address**, its **devic
 shows it, but the controller hands it out over Bluetooth LE while it is in pairing mode. You do
 this **once**; afterwards everything runs over Wi-Fi.
 
-There are two ways to read the values:
+There are three ways to read the values:
 
+- [With the Android companion app](../companion-app/README.md): reads the values and also adds
+  the controller to Home Assistant.
 - [With a Bluetooth app on your phone](#with-a-bluetooth-app-on-your-phone): no computer needed.
 - [With the Python tool](#with-the-python-tool) from this repository, on a computer with
   Bluetooth LE.
 
-Both only read. They change nothing on the controller, and the official app keeps working.
+All of them only read. They change nothing on the controller, and the official app keeps working.
 
 ## Before you start
 

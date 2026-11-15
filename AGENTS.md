@@ -16,6 +16,7 @@ Read [README.md](README.md) and [docs/protocol.md](docs/protocol.md) before chan
 | `tests/ha/` | The integration in Home Assistant, against the simulated controller (`pytest tests/ha`) |
 | `tools/e16_onboard.py` | BLE tool to read device ID and PSK |
 | `docs/protocol.md`, `docs/onboarding.md` | Protocol reference, pairing guide |
+| `companion-app/` | Android companion app (Kotlin, Gradle): reads device ID and PSK over BLE and sets up the integration through Home Assistant's config flow API. Its version is the one in `manifest.json`; see `companion-app/README.md` |
 
 ## Rules
 
@@ -48,6 +49,9 @@ Read [README.md](README.md) and [docs/protocol.md](docs/protocol.md) before chan
 - `pytest tests --ignore=tests/ha` and `pytest tests/ha` pass; CI (tests, ha-tests, hassfest,
   HACS) is green.
 - Bump `version` in `manifest.json` and add a `CHANGELOG.md` entry.
+- Tag the release `v<version>`. The companion app takes its version from `manifest.json`;
+  publishing the GitHub release attaches the signed APK (workflow `companion-app.yml`, which fails
+  if tag and manifest disagree or the signing secrets are missing).
 - If possible, import all platforms against the targeted Home Assistant version in a venv
   (`pip install homeassistant==<version>`) and evaluate the entities with sample data.
 - Changes that could not run on a real controller yet go out as a pre-release (`0.4.0b1`) first.
@@ -60,7 +64,8 @@ Runs by itself:
 - CI runs every Monday at 04:00 UTC against the latest Home Assistant
   (`pytest-homeassistant-custom-component` is not pinned). A red Monday run without a new commit
   usually means a change in Home Assistant.
-- Dependabot proposes updates of the GitHub Actions once a month.
+- Dependabot proposes updates of the GitHub Actions and of the companion app's Gradle
+  dependencies once a month.
 
 Needs a person:
 
