@@ -12,7 +12,9 @@ from homeassistant.exceptions import HomeAssistantError, ServiceValidationError
 from homeassistant.helpers import config_validation as cv, entity_platform
 
 from . import client
+from .const import DOMAIN
 from .entity import E16Entity, MODELS
+from .polarity import fan_targets
 from .program import DAYS, entry as program_entry
 from .select import HIDDEN_PROFILES, PROFILES
 
@@ -61,6 +63,10 @@ async def async_setup_entry(hass, entry, async_add_entities):
             vol.Optional("speed", default=1): vol.All(vol.Coerce(int), vol.Range(min=1, max=SPEEDS)),
             # Same range as the app: 15 min to 8 h
             vol.Optional("minutes"): vol.All(vol.Coerce(int), vol.Range(min=15, max=480)),
+            # One-way direction: fan units (device ids) of the zone that blow in and out
+            vol.Optional("supply"): vol.All(cv.ensure_list, [cv.string]),
+            vol.Optional("extract"): vol.All(cv.ensure_list, [cv.string]),
+            vol.Optional("restore_polarity", default=True): cv.boolean,
         },
         "async_set_mode",
     )
@@ -204,13 +210,23 @@ class E16Fan(E16Entity, FanEntity):
     async def async_delete_time_program_entry(self, profile, entry):
         await self._write_program_entry(profile, entry, None)
 
-    async def async_set_mode(self, mode, speed=1, minutes=None):
+    async def async_set_mode(self, mode, speed=1, minutes=None, supply=(), extract=(),
+                             restore_polarity=True):
         fan_mode = SET_MODE_MODES[mode]
         if fan_mode in (client.FAN_OFF, client.FAN_STOP):
             speed = 0
-        await self.coordinator.async_override(
-            client.CMD_ZONE_SPEED_MODE, speed, fan_mode, self.zone_id,
-            (minutes or self.coordinator.minutes(self.zone_id)) * 60)
+        record = (client.CMD_ZONE_SPEED_MODE, speed, fan_mode, self.zone_id,
+                  (minutes or self.coordinator.minutes(self.zone_id)) * 60)
+        if not supply and not extract:
+            await self.coordinator.async_override(*record)
+            return
+        # Which fan units blow in and out: their polarity, written before the command
+        if mode != VENTILATION:
+            raise ServiceValidationError(translation_domain=DOMAIN,
+                                         translation_key="direction_needs_ventilation")
+        targets = fan_targets(self.hass, self._entry, self.zone_id, supply, extract)
+        await self._entry.runtime_data.polarity.async_set_mode(
+            self.zone_id, targets, restore_polarity, record)
 
     async def async_get_devices(self, refresh=False):
         data = self._entry.runtime_data

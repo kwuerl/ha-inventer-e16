@@ -10,7 +10,9 @@ over your Wi-Fi, without the manufacturer's cloud.
 
 - **Control:** a fan entity with speed 1–4 and the modes *heat recovery* and *ventilation*.
   Off pauses the ventilation until you switch it on again; on returns to the profile. Buttons
-  *Boost 15 min*, *Pause 1 h* and *Resume profile*.
+  *Boost 15 min*, *Pause 1 h* and *Resume profile*. For ventilation, the action `set_mode` can
+  also set which fan units blow in and which out, and puts their polarity back afterwards (see
+  [One-way direction](#one-way-direction)).
 - **Profiles:** select the ventilation profile and set its comfort values (indoor and outdoor
   comfort temperature, humidity threshold, CO₂/VOC threshold if such a sensor is installed).
   Custom profiles can be selected once they have a time program.
@@ -139,7 +141,7 @@ program: the sensor shows what the profile would run.
 
 | Action | What it does |
 |---|---|
-| `inventer_e16.set_mode` | Temporary mode, speed and duration in one call |
+| `inventer_e16.set_mode` | Temporary mode, speed and duration in one call; with ventilation also which fan units blow in and out |
 | `inventer_e16.get_time_program` | Returns the time program of a profile (default: the current one) |
 | `inventer_e16.set_time_program_entry` | Writes one entry (0–31) of a profile's time program and reads it back |
 | `inventer_e16.delete_time_program_entry` | Deletes one entry |
@@ -186,6 +188,45 @@ data:
 There is no undo: read the program first and keep a copy. The automatic and cellar profiles have
 no time program.
 
+### One-way direction
+
+In ventilation mode every fan unit blows in one direction, and which one is its polarity: *supply*
+blows air in, *extract* blows it out. With `supply` and `extract`, `set_mode` sets them for the
+command, for example for a room that should get fresh air while the other room of the zone lets
+it out:
+
+```yaml
+action: inventer_e16.set_mode
+target:
+  entity_id: fan.my_inventer
+data:
+  mode: ventilation
+  speed: 3
+  minutes: 30
+  supply:                  # device IDs of fan units of this zone
+    - 0123456789abcdef0123456789abcdef
+  extract:
+    - fedcba9876543210fedcba9876543210
+```
+
+- Only with `mode: ventilation`, only fan units of the zone the fan entity belongs to, and no
+  fan unit in both lists. Fan units that are not listed are not written, but a controller that
+  switches the partner of a pair along may change them.
+- The integration reads the polarity of the fan units first and writes it only where it differs,
+  one fan unit after the other; then it sends the command. Some controllers switch the other fan
+  of a pair along, others don't (#38): it always checks what the controller reports afterwards.
+- When the command no longer runs (its time is up, the fan is switched on or off, or another
+  command replaces it), the integration writes the previous polarity back, a partner that was
+  switched along included. Otherwise the one-way ventilation of the profile's time program would
+  blow the wrong way. Home Assistant keeps what has to go back across restarts and puts it back at
+  the first poll after a start if the command has ended meanwhile. A failed attempt is retried
+  after 1, 5, 15 and then every 30 minutes; after three failures a repair issue appears.
+- `restore_polarity: false` keeps the new polarity. Setting a fan unit's polarity by hand while a
+  restore is pending keeps that fan unit as you set it. A later `set_mode` with directions for the
+  same zone replaces the command but still puts back the polarity from before the first one.
+- The *Last command* sensor of the zone shows `polarity_restore_pending` while something still
+  has to go back. Removing the integration puts it back right away.
+
 ## Privacy
 
 Everything runs locally over TCP port 47820. The only exception is the optional firmware check.
@@ -214,6 +255,8 @@ until you switch it off.
   a pair each, #38), every fan switches on its own, so both fans of a pair can have the same
   polarity, e.g. for cross ventilation. The integration only writes the fan you change and then
   shows what the controller reports for all fans.
+- That a fan unit blows air in with the polarity *supply* in ventilation mode, and the one-way
+  direction of `set_mode` built on it, have not been confirmed on a controller yet.
 - Firmware cannot be installed from Home Assistant.
 - Developed on one installation with two iV14 Zero fans and an indoor and outdoor sensor. Other
   fans on the e16 should work, but this hasn't been confirmed.

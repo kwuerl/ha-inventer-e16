@@ -19,5 +19,6 @@ async def async_get_config_entry_diagnostics(hass, entry):
         "time_programs": {profile: {"read_at": cached.read_at.isoformat(),
                                     "entries": cached.program.entries}
                           for profile, cached in sorted(data.zone.programs.items())},
+        "polarity_restore": data.polarity.as_dict(),
         "info": data.info.data,
     }

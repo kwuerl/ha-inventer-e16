@@ -224,6 +224,11 @@ Verified in November 2026 on two installations, with different results:
 What makes the controller switch the partner along is not known (the fan on a cable is a
 guess).
 
+Not verified: that in ventilation mode a fan unit blows air in with polarity 0 (supply) and out
+with 1 (extract), as the names say. The one-way direction of `set_mode` (fields `supply` and
+`extract`) relies on it: it writes field 32 of the listed fan units where it differs, reads the
+rows back, sends the command, and writes the previous values back once the command has ended.
+
 Field 1 is the zone of a device (`u8`, zone id 1–4), used by the action `set_device_zone` to move
 a fan unit or indoor sensor to another zone. Verified in November 2026 on a single-zone controller,
 moving a fan unit from zone 1 to zone 2 and back:

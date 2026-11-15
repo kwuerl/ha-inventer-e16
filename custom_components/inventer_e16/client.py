@@ -398,6 +398,11 @@ class E16Client:
         return [parse_device(cls._request(connection, T_DEVICE_ROW, bytes([index])))
                 for index in range(count)]
 
+    def get_devices(self):
+        """Only the radio devices, e.g. their polarity right before it is written."""
+        with self._connect() as connection, _malformed_as_value_error():
+            return self._devices(connection)
+
     def set_polarity(self, address, polarity):
         """Set the direction a fan unit starts in and return the radio devices read afterwards.
         The controller does not answer the write. Some controllers switch the other fan of the pair

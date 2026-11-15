@@ -244,6 +244,19 @@ def test_polarity_of_each_fan_on_its_own(monkeypatch):
     assert (devices[1]["polarity"], devices[2]["polarity"]) == (1, 1)
 
 
+def test_device_rows_on_their_own(monkeypatch):
+    controller = sim.FakeController(zones=2)
+    e16 = wired(monkeypatch, controller)
+    connections, requests = controller.connections, len(controller.requests)
+    devices = e16.get_devices()
+    # Header and one request per row, on one connection, nothing else
+    assert controller.connections == connections + 1
+    sent = [ptype for ptype, _, _ in controller.requests[requests:]]
+    assert sent == [sim.DEVICE_HEADER] + [sim.DEVICE_ROW] * 4
+    assert [(d["address"], d["zone"], d["polarity"]) for d in devices] == [
+        (0, 1, None), (1, 1, 1), (2, 1, 1), (3, 2, 1)]
+
+
 def test_polarity_of_a_device_without_one_is_not_stored(monkeypatch):
     controller = sim.FakeController()
     controller.devices.append(sim.device_row(5, 4, 3, "Indoor", 5030008, signal=-53, battery=64.0))
@@ -355,6 +368,7 @@ def test_replies_to_earlier_requests_are_skipped(monkeypatch):
     pytest.param(lambda e16: e16.get_zone(), id="get_zone"),
     pytest.param(lambda e16: e16.get_info(), id="get_info"),
     pytest.param(lambda e16: e16.get_time_program(7), id="get_time_program"),
+    pytest.param(lambda e16: e16.get_devices(), id="get_devices"),
     pytest.param(lambda e16: e16.set_time_program_entry(
         7, 0, client.program_record(0, 1, client.FAN_HEAT_RECOVERY, 1)), id="set_time_program_entry"),
     pytest.param(lambda e16: e16.user_override(client.CMD_CANCEL), id="user_override"),
@@ -402,6 +416,7 @@ READS = {
     "get_zone": lambda e16: e16.get_zone(),
     "get_info": lambda e16: e16.get_info(),
     "get_time_program": lambda e16: e16.get_time_program(7),
+    "get_devices": lambda e16: e16.get_devices(),
 }
 
 

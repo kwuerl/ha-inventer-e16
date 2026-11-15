@@ -63,7 +63,7 @@
   "services": {
     "set_mode": {
       "name": "Modus setzen",
-      "description": "Befristeter Befehl wie in der App: Modus, Stufe und Dauer. Danach kehrt der Regler zu seinem Profil zurück.",
+      "description": "Befristeter Befehl wie in der App: Modus, Stufe und Dauer. Danach kehrt der Regler zu seinem Profil zurück. Mit Durchlüftung lässt sich auch festlegen, welche Lüfter der Zone hereinblasen und welche hinausblasen.",
       "fields": {
         "mode": {
           "name": "Modus",
@@ -76,6 +76,18 @@
         "minutes": {
           "name": "Dauer",
           "description": "15 min bis 8 h. Ohne Angabe: die eingestellte Befehlsdauer."
+        },
+        "supply": {
+          "name": "Zuluft (Luft herein)",
+          "description": "Lüfter dieser Zone, die Luft hereinblasen, solange der Befehl läuft (Polarität Zuluft). Nur mit Durchlüftung."
+        },
+        "extract": {
+          "name": "Abluft (Luft hinaus)",
+          "description": "Lüfter dieser Zone, die Luft hinausblasen, solange der Befehl läuft (Polarität Abluft). Nur mit Durchlüftung."
+        },
+        "restore_polarity": {
+          "name": "Polarität wiederherstellen",
+          "description": "Stellt die für den Befehl umgestellten Lüfter auf ihre vorherige Polarität zurück, wenn er endet – auch nach einem Neustart von Home Assistant."
         }
       }
     },
@@ -270,6 +282,9 @@
         "state_attributes": {
           "active": {
             "name": "Aktiv"
+          },
+          "polarity_restore_pending": {
+            "name": "Polarität noch nicht zurückgestellt"
           }
         },
         "state": {
@@ -535,6 +550,26 @@
       "firmware_sensors": {
         "name": "Firmware Sensoren"
       }
+    }
+  },
+  "exceptions": {
+    "direction_needs_ventilation": {
+      "message": "Zuluft- und Abluft-Lüfter lassen sich nur mit dem Modus Durchlüftung festlegen."
+    },
+    "fan_in_both_lists": {
+      "message": "{device} ist für Zuluft und für Abluft angegeben."
+    },
+    "not_a_fan_unit": {
+      "message": "{device} ist kein Lüfter dieses Reglers."
+    },
+    "fan_in_other_zone": {
+      "message": "{device} gehört zu Zone {fan_zone}, nicht zu Zone {zone}."
+    }
+  },
+  "issues": {
+    "polarity_restore_failed": {
+      "title": "Polarität der Lüfter nicht zurückgestellt",
+      "description": "Ein Durchlüftungsbefehl in Zone {zone} hat die Polarität der Lüfter {fans} umgestellt. Das Zurückstellen ist dreimal fehlgeschlagen; die Integration versucht es weiter. Bis dahin bläst die Durchlüftung des Profils in die andere Richtung. Prüfe, ob der Regler erreichbar ist, oder stelle die Polarität dieser Lüfter von Hand ein."
     }
   }
 }

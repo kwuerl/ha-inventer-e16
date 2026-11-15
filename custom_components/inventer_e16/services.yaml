@@ -28,6 +28,24 @@ set_mode:
           max: 480
           step: 15
           unit_of_measurement: min
+    supply:
+      selector:
+        device:
+          multiple: true
+          filter:
+            - integration: inventer_e16
+              model: Fan unit (FCU)
+    extract:
+      selector:
+        device:
+          multiple: true
+          filter:
+            - integration: inventer_e16
+              model: Fan unit (FCU)
+    restore_polarity:
+      default: true
+      selector:
+        boolean:
 get_time_program:
   target:
     entity:

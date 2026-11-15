@@ -6,7 +6,7 @@ from homeassistant.core import callback
 from homeassistant.helpers import device_registry as dr
 from homeassistant.helpers.event import async_track_time_interval
 
-from . import client, coordinator
+from . import client, coordinator, polarity
 from .client import zones_in_use
 from .const import CONF_DEVICE_ID, CONF_FIRMWARE_CATALOG, DOMAIN
 from .entity import INDOOR_SENSOR, zone_device_key
@@ -72,6 +72,9 @@ async def async_setup_entry(hass, entry):
                 registry.async_update_device(
                     device.id, area_id=registry.async_get(data.main_device_id).area_id)
             data.zone_device_ids[zone_id] = device.id
+    # What one-way commands changed before a restart goes back once they have ended
+    data.polarity = polarity.PolarityRestore(hass, entry, data.zone, data.info)
+    await data.polarity.async_load()
     entry.runtime_data = data
     at_setup = layout(data.info.data["devices"], data.zone.zone_ids)
 
@@ -98,11 +101,14 @@ async def async_setup_entry(hass, entry):
 
     @callback
     def zones_updated():
-        # A zone runs another profile: the time program of the new one is read
+        # A zone runs another profile: the time program of the new one is read. A command has
+        # ended: the polarity it changed goes back.
         data.zone.async_track_profiles()
+        data.polarity.async_check()
 
     data.zone.async_track_profiles()
     entry.async_on_unload(data.zone.async_add_listener(zones_updated))
+    entry.async_on_unload(data.polarity.async_unload)
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
 
     @callback
@@ -115,6 +121,8 @@ async def async_setup_entry(hass, entry):
     check_time_programs()
     entry.async_on_unload(async_track_time_interval(
         hass, check_time_programs, coordinator.CUSTOM_PROFILE_RETRY))
+    # The first poll after a start: what a command changed while Home Assistant was away goes back
+    data.polarity.async_check()
     # No update listener: it would reload on every entry change, even when Home Assistant only
     # records a DHCP discovery key. Options reload via OptionsFlowWithReload, flows via their abort.
     return True
@@ -122,6 +130,11 @@ async def async_setup_entry(hass, entry):
 
 async def async_unload_entry(hass, entry):
     return await hass.config_entries.async_unload_platforms(entry, PLATFORMS)
+
+
+async def async_remove_entry(hass, entry):
+    """A polarity still to be put back goes back now; its storage goes with the entry."""
+    await polarity.async_remove(hass, entry)
 
 
 async def async_remove_config_entry_device(hass, entry, device):

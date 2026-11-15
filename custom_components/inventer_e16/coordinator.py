@@ -43,6 +43,8 @@ class E16Data:
     main_device_id: str | None = None
     # Device registry id per zone; zone 1 is the main device
     zone_device_ids: dict = field(default_factory=dict)
+    # Polarity to put back after one-way commands (polarity.PolarityRestore)
+    polarity: object = None
 
 
 @dataclass
@@ -297,6 +299,14 @@ class E16InfoCoordinator(DataUpdateCoordinator):
         except (E16AuthError, OSError, ValueError) as error:
             raise HomeAssistantError(f"e16 setting failed: {error}") from error
         await self.async_request_refresh()
+
+    async def async_read_devices(self):
+        """Read the radio device rows now, e.g. before a polarity is written."""
+        try:
+            devices = await self.hass.async_add_executor_job(self.client.get_devices)
+        except (E16AuthError, OSError, ValueError) as error:
+            raise HomeAssistantError(f"Reading the e16 radio devices failed: {error}") from error
+        self.async_set_updated_data({**self.data, "devices": devices})
 
     async def async_set_device_zone(self, address, zone_id):
         # The layout listener moves the device below its new zone, or reloads for a new zone

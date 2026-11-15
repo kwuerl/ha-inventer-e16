@@ -63,7 +63,7 @@
   "services": {
     "set_mode": {
       "name": "Set mode",
-      "description": "Time-limited command like in the app: mode, speed and duration. Afterwards the controller returns to its profile.",
+      "description": "Time-limited command like in the app: mode, speed and duration. Afterwards the controller returns to its profile. With ventilation it can also set which fan units of the zone blow in and which blow out.",
       "fields": {
         "mode": {
           "name": "Mode",
@@ -76,6 +76,18 @@
         "minutes": {
           "name": "Duration",
           "description": "15 min to 8 h. Default: the command duration entity."
+        },
+        "supply": {
+          "name": "Supply (air in)",
+          "description": "Fan units of this zone that blow air in while the command runs (polarity supply). Only with ventilation."
+        },
+        "extract": {
+          "name": "Extract (air out)",
+          "description": "Fan units of this zone that blow air out while the command runs (polarity extract). Only with ventilation."
+        },
+        "restore_polarity": {
+          "name": "Restore polarity",
+          "description": "When the command ends, set the fan units changed for it back to their previous polarity, also after a restart of Home Assistant."
         }
       }
     },
@@ -270,6 +282,9 @@
         "state_attributes": {
           "active": {
             "name": "Active"
+          },
+          "polarity_restore_pending": {
+            "name": "Polarity restore pending"
           }
         },
         "state": {
@@ -535,6 +550,26 @@
       "firmware_sensors": {
         "name": "Firmware sensors"
       }
+    }
+  },
+  "exceptions": {
+    "direction_needs_ventilation": {
+      "message": "Supply and extract fan units can only be set with the mode ventilation."
+    },
+    "fan_in_both_lists": {
+      "message": "{device} is listed for supply and for extract."
+    },
+    "not_a_fan_unit": {
+      "message": "{device} is not a fan unit of this controller."
+    },
+    "fan_in_other_zone": {
+      "message": "{device} belongs to zone {fan_zone}, not to zone {zone}."
+    }
+  },
+  "issues": {
+    "polarity_restore_failed": {
+      "title": "Polarity of fan units not restored",
+      "description": "A one-way command in zone {zone} changed the polarity of the fan units {fans}. Putting their previous polarity back has failed three times; the integration keeps trying. Until then, the one-way ventilation of the profile blows the other way. Check that the controller is reachable, or set the polarity of these fan units by hand."
     }
   }
 }

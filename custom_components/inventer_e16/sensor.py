@@ -136,12 +136,15 @@ class E16ZoneSensor(E16Entity, SensorEntity):
                 return {"ends_at": None}
             ends_at = dt_util.as_local(polled_at + timedelta(seconds=timer))
             return {"ends_at": ends_at.isoformat(timespec="seconds")}
-        value = self.zone.get("last_override")
-        if self.key != "last_override" or not value:
+        if self.key != "last_override":
             return None
+        # A one-way command changed the polarity of fan units, and it hasn't gone back yet
+        pending = self.coordinator.config_entry.runtime_data.polarity.is_pending(self.zone_id)
+        if not (value := self.zone.get("last_override")):
+            return {"polarity_restore_pending": pending}
         return {"speed": value["speed"], "fan_mode": value["mode"], "zone": value["zone"],
                 "duration_s": None if value["duration"] == FOREVER else value["duration"],
-                "active": override_active(value, self.zone)}
+                "active": override_active(value, self.zone), "polarity_restore_pending": pending}
 
 
 def program_attributes(zones, profile, now):

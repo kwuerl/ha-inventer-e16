@@ -110,6 +110,8 @@ class E16Polarity(E16Entity, SelectEntity):
     async def async_select_option(self, option):
         polarity = next(k for k, v in POLARITIES.items() if v == option)
         await self.coordinator.async_set_polarity(self.address, polarity)
+        # Set by hand: not put back after a one-way command
+        await self.coordinator.config_entry.runtime_data.polarity.async_forget(self.address)
 
 
 class E16DeviceZone(E16Entity, SelectEntity):
