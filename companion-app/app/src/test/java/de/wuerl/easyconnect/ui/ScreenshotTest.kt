@@ -155,6 +155,18 @@ class ScreenshotTest {
         )
     }
 
+    @Test
+    fun local_network_denied() = shot("12_local_network_denied") {
+        SetupScreen(
+            SetupUiState(
+                unit = UnitUi.Paired(unit.copy(host = null), LanUi.Blocked),
+                ha = haDone.copy(integration = IntegrationAvailability.Unknown(UiText.res(R.string.local_network_off_ha))),
+                localNetwork = LocalNetworkUi.Denied(canAskAgain = true),
+            ),
+            SetupActions(),
+        )
+    }
+
     private fun doneState() = SetupUiState(
         unit = UnitUi.Paired(unit, LanUi.Found("192.0.2.10", 47820, unit.zones, verified = true)),
         ha = haDone,

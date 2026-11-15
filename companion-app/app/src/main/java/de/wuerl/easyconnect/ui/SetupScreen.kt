@@ -98,6 +98,8 @@ class SetupActions(
     val onSignOut: () -> Unit = {},
     val onOpenIntegration: () -> Unit = {},
     val onRunAgain: () -> Unit = {},
+    val onAllowLocalNetwork: () -> Unit = {},
+    val onOpenAppSettings: () -> Unit = {},
 )
 
 @Composable
@@ -119,6 +121,10 @@ fun SetupScreen(state: SetupUiState, actions: SetupActions, snackbar: SnackbarHo
             ) {
                 Header()
                 Spacer(Modifier.height(28.dp))
+                (state.localNetwork as? LocalNetworkUi.Denied)?.let { denied ->
+                    LocalNetworkBanner(denied, actions)
+                    Spacer(Modifier.height(20.dp))
+                }
                 StepItem(1, unitStatus(state.unit), isLast = false) { UnitCard(state.unit, actions) }
                 StepItem(2, haStatus(state.ha), isLast = false) { HaCard(state.ha, actions) }
                 StepItem(3, integrationStatus(state.integration), isLast = true) { IntegrationCard(state, actions) }
@@ -181,6 +187,33 @@ fun AirflowMark(modifier: Modifier = Modifier) {
         drawPath(curl(13f, 23f, 43f, up = true), main, style = stroke)
         drawLine(accent, Offset(8f * s, 36f * s), Offset(64f * s, 36f * s), strokeWidth = 6f * s, cap = StrokeCap.Round)
         drawPath(curl(19f, 49f, 47f, up = false), main, style = stroke)
+    }
+}
+
+// --- Local network access (Android 17) --------------------------------------------------
+
+@Composable
+private fun LocalNetworkBanner(denied: LocalNetworkUi.Denied, actions: SetupActions) {
+    Surface(
+        shape = RoundedCornerShape(24.dp),
+        color = MaterialTheme.colorScheme.errorContainer,
+        contentColor = MaterialTheme.colorScheme.onErrorContainer,
+        modifier = Modifier.fillMaxWidth(),
+    ) {
+        Column(Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Icon(Icons.Rounded.Router, contentDescription = null, modifier = Modifier.size(22.dp))
+                Spacer(Modifier.size(10.dp))
+                Text(stringResource(R.string.local_network_title), style = MaterialTheme.typography.titleMedium)
+            }
+            Text(stringResource(R.string.local_network_body), style = MaterialTheme.typography.bodyMedium)
+            if (denied.canAskAgain) {
+                Button(onClick = actions.onAllowLocalNetwork) { Text(stringResource(R.string.action_allow)) }
+            } else {
+                Text(stringResource(R.string.local_network_settings_hint), style = MaterialTheme.typography.bodyMedium)
+                Button(onClick = actions.onOpenAppSettings) { Text(stringResource(R.string.action_open_settings)) }
+            }
+        }
     }
 }
 
@@ -271,6 +304,11 @@ private fun LanStatus(lan: LanUi, actions: SetupActions) {
                     StatusLine(text = stringResource(R.string.lan_no_wifi), icon = Icons.Rounded.WifiOff, iconTint = MaterialTheme.colorScheme.error)
                     RetryRow(actions)
                 }
+                LanUi.Blocked -> StatusLine(
+                    text = stringResource(R.string.lan_blocked),
+                    icon = Icons.Rounded.WifiOff,
+                    iconTint = MaterialTheme.colorScheme.error,
+                )
             }
         }
     }

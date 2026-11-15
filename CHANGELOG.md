@@ -4,8 +4,9 @@
 
 - **Android companion app** ([`companion-app/`](companion-app/README.md)): pairs with the
   controller over Bluetooth, reads device ID and PSK, signs in to Home Assistant (OAuth) and adds
-  the integration, or updates host and key of an existing entry. The app carries the version of
-  the integration, and every GitHub release gets its APK.
+  the integration, or updates host and key of an existing entry. It targets Android 17 and asks
+  for local network access before it uses the network. The app carries the version of the
+  integration, and every GitHub release gets its APK.
 
 ## 0.5.0 – 2026-11-13
 

@@ -23,6 +23,7 @@
     <string name="lan_not_found">Im WLAN nicht gefunden. Das Telefon muss im selben Netzwerk sein wie die Bedieneinheit.</string>
     <string name="lan_rejected">%1$s hat geantwortet, aber den Schlüssel abgelehnt.</string>
     <string name="lan_no_wifi">Verbinde das Telefon mit deinem WLAN, um die Bedieneinheit zu finden.</string>
+    <string name="lan_blocked">Ohne Zugriff aufs lokale Netzwerk kann die App das WLAN nicht durchsuchen.</string>
     <string name="action_search_again">Erneut suchen</string>
     <string name="action_enter_address">Adresse eingeben</string>
     <string name="menu_more">Mehr</string>
@@ -143,4 +144,11 @@
     <string name="forget_title">Bedieneinheit entfernen?</string>
     <string name="forget_body">Der Schlüssel wird von diesem Telefon gelöscht. Home Assistant behält seine eigene Kopie.</string>
     <string name="action_forget">Entfernen</string>
+
+    <!-- Android 17: Zugriff aufs lokale Netzwerk -->
+    <string name="local_network_title">Zugriff aufs lokale Netzwerk ist aus</string>
+    <string name="local_network_body">Ohne ihn blockiert Android jede Verbindung zur Bedieneinheit und zu Home Assistant in deinem Netzwerk, und keine Fehlermeldung sagt es. Das Koppeln über Bluetooth funktioniert trotzdem.</string>
+    <string name="local_network_settings_hint">Android fragt nicht noch einmal. Erlaube ihn in den Einstellungen der App unter Berechtigungen.</string>
+    <string name="local_network_off">Der Zugriff aufs lokale Netzwerk ist aus.</string>
+    <string name="local_network_off_ha">Ohne Zugriff aufs lokale Netzwerk erreicht die App Home Assistant nicht.</string>
 </resources>

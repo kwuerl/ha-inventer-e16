@@ -12,6 +12,7 @@ import android.location.LocationManager
 import android.net.Uri
 import android.os.Build
 import android.provider.Settings
+import androidx.activity.compose.LocalActivity
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.material3.SnackbarHostState
@@ -21,11 +22,13 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalResources
+import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import androidx.core.net.toUri
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.LifecycleEventEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import de.wuerl.easyconnect.device.LocalNetworkAccess
 import de.wuerl.easyconnect.ui.UnitUi.Paired
 
 /** Runtime checks the pairing flow needs before it can scan. */
@@ -35,8 +38,6 @@ object PairingPermissions {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
             add(Manifest.permission.BLUETOOTH_SCAN)
             add(Manifest.permission.BLUETOOTH_CONNECT)
-            // Android 17 groups local-network access with "Nearby devices"; ask for both at once.
-            if (Build.VERSION.SDK_INT >= 37) add("android.permission.ACCESS_LOCAL_NETWORK")
         } else {
             add(Manifest.permission.ACCESS_FINE_LOCATION)
         }
@@ -74,12 +75,32 @@ fun SetupRoute(viewModel: SetupViewModel) {
     }
     val bluetoothLauncher = rememberLauncherForActivityResult(ActivityResultContracts.StartActivityForResult()) { recheckPairing() }
 
+    // Android 17: asked for on its own, right before the app first needs the local network.
+    val activity = LocalActivity.current
+    val localNetworkLauncher = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
+        val canAskAgain = activity != null && ActivityCompat.shouldShowRequestPermissionRationale(activity, LocalNetworkAccess.PERMISSION)
+        viewModel.onLocalNetworkResult(granted, canAskAgain)
+    }
+    LaunchedEffect(state.localNetwork) {
+        if (state.localNetwork == LocalNetworkUi.Request) {
+            localNetworkLauncher.launch(LocalNetworkAccess.PERMISSION)
+            viewModel.onLocalNetworkRequesting()
+        }
+    }
+
+    fun openAppSettings() {
+        runCatching {
+            context.startActivity(Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS, Uri.fromParts("package", context.packageName, null)))
+        }
+    }
+
     // Coming back from the system settings: pick up a granted permission or enabled radio.
     LifecycleEventEffect(Lifecycle.Event.ON_RESUME) {
         when (state.pairing) {
             PairingUi.PermissionDenied, PairingUi.BluetoothOff, PairingUi.LocationOff -> recheckPairing()
             else -> Unit
         }
+        viewModel.recheckLocalNetwork()
     }
     LaunchedEffect(state.pairing is PairingUi.NeedsPermission) {
         if (state.pairing is PairingUi.NeedsPermission) permissionLauncher.launch(PairingPermissions.required())
@@ -130,6 +151,8 @@ fun SetupRoute(viewModel: SetupViewModel) {
             onSignOut = viewModel::signOut,
             onOpenIntegration = { open(viewModel.integrationUrl()) },
             onRunAgain = viewModel::runIntegrationAgain,
+            onAllowLocalNetwork = viewModel::askLocalNetwork,
+            onOpenAppSettings = ::openAppSettings,
         ),
     )
 
@@ -138,13 +161,7 @@ fun SetupRoute(viewModel: SetupViewModel) {
             pairing = pairing,
             actions = PairingActions(
                 onAllow = { permissionLauncher.launch(PairingPermissions.required()) },
-                onOpenSettings = {
-                    runCatching {
-                        context.startActivity(
-                            Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS, Uri.fromParts("package", context.packageName, null)),
-                        )
-                    }
-                },
+                onOpenSettings = ::openAppSettings,
                 onEnableBluetooth = { runCatching { bluetoothLauncher.launch(Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE)) } },
                 onEnableLocation = { runCatching { context.startActivity(Intent(Settings.ACTION_LOCATION_SOURCE_SETTINGS)) } },
                 onSelect = viewModel::selectUnit,

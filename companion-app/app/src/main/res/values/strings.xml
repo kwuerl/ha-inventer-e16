@@ -25,6 +25,7 @@
     <string name="lan_not_found">Not found on your Wi‑Fi. The phone must be on the same network as the controller.</string>
     <string name="lan_rejected">%1$s answered but rejected this key.</string>
     <string name="lan_no_wifi">Connect the phone to your Wi‑Fi to find the controller.</string>
+    <string name="lan_blocked">Can’t search your Wi‑Fi without local network access.</string>
     <string name="action_search_again">Search again</string>
     <string name="action_enter_address">Enter address</string>
     <string name="menu_more">More</string>
@@ -153,4 +154,11 @@
     <string name="forget_title">Forget the controller?</string>
     <string name="forget_body">The key is deleted from this phone. Home Assistant keeps its own copy.</string>
     <string name="action_forget">Forget</string>
+
+    <!-- Android 17: local network access -->
+    <string name="local_network_title">Local network access is off</string>
+    <string name="local_network_body">Without it, Android blocks every connection to the controller and to Home Assistant on your network, and no error says so. Pairing over Bluetooth still works.</string>
+    <string name="local_network_settings_hint">Android won’t ask again. Allow it in the app’s settings under Permissions.</string>
+    <string name="local_network_off">Local network access is off.</string>
+    <string name="local_network_off_ha">Without local network access the app can’t reach Home Assistant.</string>
 </resources>

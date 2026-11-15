@@ -53,6 +53,9 @@ class SetupViewModel(private val graph: AppGraph) : ViewModel() {
     private val _state = MutableStateFlow(SetupUiState())
     val state: StateFlow<SetupUiState> = _state.asStateFlow()
 
+    /** Android 17: everything but the Bluetooth pairing waits for local network access. */
+    private val localNetwork = LocalNetworkGate(graph.localNetwork::isGranted) { s -> _state.update { it.copy(localNetwork = s) } }
+
     @Volatile private var unit: PairedUnit? = graph.store.loadUnit()
     @Volatile private var session: HaSession? = graph.store.loadHa()
     private var api: HomeAssistantApi? = null
@@ -79,6 +82,13 @@ class SetupViewModel(private val graph: AppGraph) : ViewModel() {
             }
         }
     }
+
+    // --- Local network access (Android 17) --------------------------------------------------
+
+    fun onLocalNetworkRequesting() = localNetwork.onRequesting()
+    fun onLocalNetworkResult(granted: Boolean, canAskAgain: Boolean) = localNetwork.onResult(granted, canAskAgain)
+    fun askLocalNetwork() = localNetwork.ask()
+    fun recheckLocalNetwork() = localNetwork.recheck()
 
     // --- Pairing ---------------------------------------------------------------------------
 
@@ -207,7 +217,11 @@ class SetupViewModel(private val graph: AppGraph) : ViewModel() {
     // --- Controller on the LAN ------------------------------------------------------------
 
     fun locateUnit() {
-        val current = unit ?: return
+        if (unit == null) return
+        localNetwork.run("locate", blocked = { setLan(LanUi.Blocked) }) { unit?.let(::startLocate) }
+    }
+
+    private fun startLocate(current: PairedUnit) {
         locateJob?.cancel()
         locateJob = viewModelScope.launch {
             setLan(LanUi.Searching(null))
@@ -249,7 +263,12 @@ class SetupViewModel(private val graph: AppGraph) : ViewModel() {
         it.copy(manualHost = it.manualHost?.copy(input = text, error = null, offerUseAnyway = false))
     }
 
-    fun checkManualHost() {
+    fun checkManualHost() = localNetwork.run(
+        "manual-host",
+        blocked = { _state.update { it.copy(manualHost = it.manualHost?.copy(error = UiText.res(R.string.local_network_off))) } },
+    ) { probeManualHost() }
+
+    private fun probeManualHost() {
         val current = unit ?: return
         val host = _state.value.manualHost?.input?.trim().orEmpty()
         if (host.isEmpty()) return
@@ -314,7 +333,9 @@ class SetupViewModel(private val graph: AppGraph) : ViewModel() {
 
     // --- Home Assistant -------------------------------------------------------------------
 
-    fun openHaPicker() {
+    fun openHaPicker() = localNetwork.run("ha-picker") { showHaPicker() }
+
+    private fun showHaPicker() {
         _state.update { it.copy(haPicker = HaPickerUi(input = session?.baseUrl ?: graph.store.lastHaUrl().orEmpty())) }
         haDiscoveryJob?.cancel()
         haDiscoveryJob = viewModelScope.launch {
@@ -434,6 +455,14 @@ class SetupViewModel(private val graph: AppGraph) : ViewModel() {
     }
 
     fun refreshHaStatus() {
+        if (api == null) return
+        localNetwork.run(
+            "ha-status",
+            blocked = { updateHa { it.copy(integration = IntegrationAvailability.Unknown(UiText.res(R.string.local_network_off_ha))) } },
+        ) { checkHaStatus() }
+    }
+
+    private fun checkHaStatus() {
         val client = api ?: return
         haStatusJob?.cancel()
         haStatusJob = viewModelScope.launch {
@@ -470,7 +499,7 @@ class SetupViewModel(private val graph: AppGraph) : ViewModel() {
     fun signOut() {
         val s = session
         dropSession()
-        if (s != null) viewModelScope.launch { graph.haAuth.revoke(s.baseUrl.toHttpUrl(), s.refreshToken) }
+        if (s != null && graph.localNetwork.isGranted()) viewModelScope.launch { graph.haAuth.revoke(s.baseUrl.toHttpUrl(), s.refreshToken) }
     }
 
     private fun dropSession() {
@@ -529,11 +558,16 @@ class SetupViewModel(private val graph: AppGraph) : ViewModel() {
     }
 
     /** "Try again" / "Run again" from the integration card. */
-    fun runIntegrationAgain() {
-        val target = installedTarget() ?: run { refreshHaStatus(); return }
-        val fp = fingerprintFor(target.domain) ?: return
-        attemptedFingerprint = fp
-        configure(target, fp)
+    fun runIntegrationAgain() = localNetwork.run("configure") {
+        val target = installedTarget()
+        if (target == null) {
+            refreshHaStatus()
+        } else {
+            fingerprintFor(target.domain)?.let { fp ->
+                attemptedFingerprint = fp
+                configure(target, fp)
+            }
+        }
     }
 
     private fun configure(target: IntegrationTarget, fingerprint: String) {

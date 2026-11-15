@@ -49,7 +49,7 @@ android {
     defaultConfig {
         applicationId = "de.wuerl.easyconnect"
         minSdk = 26
-        targetSdk = 36
+        targetSdk = 37
         versionCode = versionCodeOf(integrationVersion)
         versionName = integrationVersion
 
@@ -109,9 +109,6 @@ android {
     lint {
         // "inVENTer" is a brand name, not a misspelling of "inventor".
         disable += "Typos"
-        // Deliberately API 36: targeting 37 makes Android 17 gate all local-network access
-        // (Home Assistant, the unit) behind the new ACCESS_LOCAL_NETWORK runtime permission.
-        disable += "OldTargetApi"
         // AAPT2 only picks up the adaptive launcher icon from mipmap-anydpi-v26.
         disable += "ObsoleteSdkInt"
     }

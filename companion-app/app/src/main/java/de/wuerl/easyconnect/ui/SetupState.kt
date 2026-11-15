@@ -49,6 +49,22 @@ sealed interface LanUi {
     /** Nothing accepted the key; [rejectedBy] answered but refused it. */
     data class NotFound(val rejectedBy: List<String>) : LanUi
     data object NoWifi : LanUi
+
+    /** Android 17 without local network access: the search waits for the permission. */
+    data object Blocked : LanUi
+}
+
+/** Android 17: local network access (ACCESS_LOCAL_NETWORK), see [LocalNetworkGate]. */
+@Immutable
+sealed interface LocalNetworkUi {
+    /** Show the system dialog now. */
+    data object Request : LocalNetworkUi
+
+    /** The system dialog is open. */
+    data object Requesting : LocalNetworkUi
+
+    /** Denied. Without [canAskAgain] Android won't show the dialog again; only the app settings can. */
+    data class Denied(val canAskAgain: Boolean) : LocalNetworkUi
 }
 
 @Immutable
@@ -136,4 +152,5 @@ data class SetupUiState(
     val showKey: Boolean = false,
     val confirmForget: Boolean = false,
     val message: UiText? = null,
+    val localNetwork: LocalNetworkUi? = null,
 )

@@ -36,6 +36,11 @@ You need:
 1. **Pair:** tap *Pair controller*, close the inVENTer app on nearby phones (the controller accepts one
    Bluetooth connection), then hold the mode button for about 4 seconds until the LED blinks
    blue. The app reads device ID and PSK and looks for the controller on your Wi-Fi.
+
+   On Android 17 the app asks for **local network access** first (it belongs to *Nearby devices*,
+   so if Bluetooth is already allowed, Android grants it without asking). Without it, Android
+   blocks every connection to the controller and to Home Assistant and doesn't say so; the app
+   then shows why and offers to ask again or open its settings.
 2. **Home Assistant:** pick your instance (found on the network) or enter its address, then sign
    in.
 3. **Integration:** the app adds the controller. If Home Assistant had already discovered it, the
@@ -117,6 +122,7 @@ Needs JDK 17 or newer and the Android SDK (compileSdk 37). For a release-signed 
 
 | Test | Covers |
 |---|---|
+| `LocalNetworkGateTest` | Network actions wait for the Android 17 permission and run once it is granted |
 | `ZirconiaProtocolTest`, `MdsdpTest`, `FlowParsingTest` | Framing and CRC-8 (checked against a capture in `tests/test_acknowledgements.py`), zone rows, discovery packets, config-flow forms |
 | `MockUnitTest` | TLS-PSK client, zone table, MDSDP and the subnet sweep against [`tools/mock_e16.py`](tools/mock_e16.py), a stand-in controller (Python 3.13+, skipped without it) |
 | `HomeAssistantIntegrationTest` | Login and config flow against a real Home Assistant with this integration and the stand-in controller: new entry, wrong key, unreachable controller, reconfigure, pending re-authentication, DHCP discovery, non-admin account, token refresh and revoke. Runs when `HA_TEST_URL`, `HA_TEST_USER` and `HA_TEST_PASSWORD` are set, see below |
@@ -136,9 +142,11 @@ eval "$(tools/ha-test/start.sh | grep '^export')"
 All sample data (key `0102030405060708`, device ID `ABCDE-FGHIJ`, addresses from 192.0.2.0/24,
 zone names) is made up, as everywhere in this repository.
 
-**Why targetSdk 36?** Android 17 makes local-network access a runtime permission
-(`ACCESS_LOCAL_NETWORK`) for apps that target API 37. The manifest declares it and pairing asks
-for it on Android 17; before raising the target, the Home Assistant step has to ask for it too.
+**Android 17:** the app targets API 37, so Android 17 drops its local network traffic until
+`ACCESS_LOCAL_NETWORK` is granted (TCP connections time out, UDP fails with `EPERM`, mDNS and the
+login page get nothing). Every action that needs the network goes through `LocalNetworkGate`,
+which asks for the permission first and holds the action back until it is granted. Apps that
+target API 36 must not ask for it at all: Android denies the request without a dialog.
 
 ## Layout
 

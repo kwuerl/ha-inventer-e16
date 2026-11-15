@@ -8,6 +8,7 @@ import de.wuerl.easyconnect.ble.EasyConnectBle
 import de.wuerl.easyconnect.data.KeystoreBlobStore
 import de.wuerl.easyconnect.data.SetupStore
 import de.wuerl.easyconnect.device.AndroidLan
+import de.wuerl.easyconnect.device.LocalNetworkAccess
 import de.wuerl.easyconnect.device.UnitLocator
 import de.wuerl.easyconnect.ha.HaAuthClient
 import de.wuerl.easyconnect.ha.HaDiscovery
@@ -18,6 +19,7 @@ class AppGraph(context: Context) {
     val store = SetupStore(KeystoreBlobStore(context))
     val ble = EasyConnectBle(context)
     val lan = AndroidLan(context)
+    val localNetwork = LocalNetworkAccess(context)
     val locator = UnitLocator(lan)
     val http = defaultHaHttpClient()
     val haAuth = HaAuthClient(http, BuildConfig.HA_CLIENT_ID, BuildConfig.HA_REDIRECT_URI)
