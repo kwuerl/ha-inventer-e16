@@ -1,5 +1,29 @@
 # Changelog
 
+## 0.6.0b1 – unreleased (pre-release)
+
+Pre-release for wall panels that show the ventilation program and offer one-way ventilation in a
+chosen direction. Neither has run on a real controller yet.
+
+- **Time program sensor** per zone: its state is the active profile, its attributes are that
+  profile's time program. They hold the entries, the week as segments from 00:00 to 24:00 per day
+  (a day starts with what the last entry before it set, Monday with Sunday's), what runs now and
+  the next change. The program is read in the background, one connection per profile: after a
+  start, when a zone switches to another profile, after a change through the actions and once a
+  day. A profile that several zones use is read once, and `current` and `next` follow the clock
+  without asking the controller.
+- **One-way direction** (#33, #38): `inventer_e16.set_mode` takes `supply` and `extract`, the fan
+  units of the zone that blow air in and out in ventilation mode. Their polarity is written where
+  it differs, then the command is sent. When the command ends (time up, cancelled or replaced by
+  another command), the previous polarity goes back, also after a restart of Home Assistant
+  (`restore_polarity`, on by default). Failed attempts are retried, with a repair issue after
+  three. The zone's *Last command* sensor shows `polarity_restore_pending`.
+- The zone's *Timer* sensor has the attribute `ends_at`.
+- Diagnostics contain the time programs read and the polarity still to be put back.
+- Development: the Home Assistant tests use `pytest-homeassistant`, Home Assistant core's test
+  package, pinned in `requirements_test.txt`, instead of the discontinued
+  `pytest-homeassistant-custom-component`.
+
 ## 0.5.0 – 2026-11-13
 
 Stable release of 0.5.0b1, confirmed on two installations with several zones in #22. Based on #37
