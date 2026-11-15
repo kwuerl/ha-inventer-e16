@@ -15,8 +15,8 @@ from homeassistant.config_entries import ConfigEntryState
 from homeassistant.core import State
 from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers import area_registry as ar, device_registry as dr, entity_registry as er
-from pytest_homeassistant_custom_component.common import (MockConfigEntry, async_fire_time_changed,
-                                                          mock_restore_cache)
+from pytest_homeassistant.common import (MockConfigEntry, async_fire_time_changed,
+                                         mock_restore_cache)
 
 from custom_components.inventer_e16 import client
 from custom_components.inventer_e16.const import DOMAIN

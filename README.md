@@ -206,9 +206,13 @@ real controller.
 ```bash
 pip install pytest
 pytest tests --ignore=tests/ha          # protocol tests, any OS
-pip install pytest-homeassistant-custom-component
+pip install -r requirements_test.txt    # Python 3.14.2 or newer
 pytest tests/ha                         # Home Assistant tests, Linux/macOS
 ```
+
+`requirements_test.txt` pins `pytest-homeassistant`, Home Assistant core's test package, which
+installs the Home Assistant version the tests run against. Upgrade it with every Home Assistant
+release.
 
 The protocol client (`custom_components/inventer_e16/client.py`) has no Home Assistant
 dependency and can be used on its own.

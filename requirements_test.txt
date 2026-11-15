@@ -1,0 +1,3 @@
+# Home Assistant tests (tests/ha): Home Assistant core's test package. It is released with every
+# Home Assistant version and pins homeassistant to that version (Python 3.14.2 or newer).
+pytest-homeassistant==2026.11.1
