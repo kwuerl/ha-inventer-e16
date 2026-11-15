@@ -66,6 +66,8 @@ class E16ZoneCoordinator(DataUpdateCoordinator):
         self.zone_ids = (1,)
         # Duration of speed/mode commands per zone, in minutes
         self.override_minutes = {}
+        # When the zones were read last; their timers count from there
+        self.polled_at = None
         # Custom profiles with a time program: the profile select offers them
         self.custom_profiles = set()
         self._unchecked = set()
@@ -90,11 +92,13 @@ class E16ZoneCoordinator(DataUpdateCoordinator):
 
     async def _async_update_data(self):
         try:
-            return await self.hass.async_add_executor_job(self.client.get_zones, self.zone_ids)
+            zones = await self.hass.async_add_executor_job(self.client.get_zones, self.zone_ids)
         except E16AuthError as error:
             raise ConfigEntryAuthFailed("The controller rejected the PSK") from error
         except (OSError, ValueError) as error:
             raise UpdateFailed(f"Reading the e16 zones failed: {error}") from error
+        self.polled_at = dt_util.utcnow()
+        return zones
 
     async def _async_command(self, method, *args):
         LOGGER.debug("e16 command %s%s", method.__name__, args)
@@ -102,6 +106,7 @@ class E16ZoneCoordinator(DataUpdateCoordinator):
             zones = await self.hass.async_add_executor_job(method, *args)
         except (E16AuthError, OSError, ValueError) as error:
             raise HomeAssistantError(f"e16 command failed: {error}") from error
+        self.polled_at = dt_util.utcnow()
         self.async_set_updated_data(zones)
 
     async def async_override(self, command, speed=0, mode=FAN_OFF, zone=ZONE_GLOBAL, duration=0):

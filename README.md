@@ -84,7 +84,8 @@ every command) and the firmware check (see [Privacy](#privacy)).
 ## Usage
 
 Speed and mode changes are **temporary**, as in the app. The *Command duration* entity
-(15 min–8 h) sets how long they last; after that the controller returns to its profile. For
+(15 min–8 h) sets how long they last; after that the controller returns to its profile. The
+*Timer* sensor shows the time left, and its attribute `ends_at` when the command ends. For
 permanent changes, select another profile or edit its time program.
 
 ### Several zones

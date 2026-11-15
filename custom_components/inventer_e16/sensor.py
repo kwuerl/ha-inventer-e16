@@ -129,6 +129,13 @@ class E16ZoneSensor(E16Entity, SensorEntity):
 
     @property
     def extra_state_attributes(self):
+        if self.key == "timer":
+            # The remaining time as read, counted from the poll
+            timer, polled_at = self.zone["timer"], self.coordinator.polled_at
+            if not polled_at or not 0 < timer < FOREVER:
+                return {"ends_at": None}
+            ends_at = dt_util.as_local(polled_at + timedelta(seconds=timer))
+            return {"ends_at": ends_at.isoformat(timespec="seconds")}
         value = self.zone.get("last_override")
         if self.key != "last_override" or not value:
             return None

@@ -4,7 +4,7 @@
 devices, and which command each entity sends with one zone and with several (issue #22)."""
 import importlib.util
 from pathlib import Path
-from datetime import timedelta
+from datetime import datetime, timedelta, timezone
 import struct
 import time
 from types import SimpleNamespace
@@ -15,6 +15,7 @@ from homeassistant.config_entries import ConfigEntryState
 from homeassistant.core import State
 from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers import area_registry as ar, device_registry as dr, entity_registry as er
+from homeassistant.util import dt as dt_util
 from pytest_homeassistant.common import (MockConfigEntry, async_fire_time_changed,
                                          mock_restore_cache)
 
@@ -157,6 +158,21 @@ async def test_zone_cancel_ends_the_pause_without_end(hass, monkeypatch):
     await _call(hass, "fan", "turn_on", fan2)
     assert hass.states.get(_entity(hass, "sensor", "zone2_last_override")).state == "zone_speed_mode"
     assert _last_override(hass, "zone2_last_override") is False
+
+
+async def test_timer_tells_when_the_command_ends(hass, monkeypatch, freezer):
+    freezer.move_to("2026-11-18 12:00:00+00:00")
+    controller = sim.FakeController(zones=2)
+    await _setup(hass, monkeypatch, controller)
+    timer = _entity(hass, "sensor", "zone2_timer")
+    assert hass.states.get(timer).attributes["ends_at"] is None
+    await _call(hass, DOMAIN, "set_mode", _entity(hass, "fan", "zone2_fan"), mode="heat_recovery",
+                speed=3, minutes=30)
+    assert dt_util.parse_datetime(hass.states.get(timer).attributes["ends_at"]) == datetime(
+        2026, 11, 18, 12, 30, tzinfo=timezone.utc)
+    # A pause without end has no end
+    await _call(hass, "fan", "turn_off", _entity(hass, "fan", "zone2_fan"))
+    assert hass.states.get(timer).attributes["ends_at"] is None
 
 
 async def test_resume_during_a_pause_for_all_zones_ends_it_everywhere(hass, monkeypatch):

@@ -237,7 +237,12 @@
         }
       },
       "timer": {
-        "name": "Timer"
+        "name": "Timer",
+        "state_attributes": {
+          "ends_at": {
+            "name": "Ends at"
+          }
+        }
       },
       "inside_temperature": {
         "name": "Indoor temperature"
