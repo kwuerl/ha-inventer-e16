@@ -1,6 +1,6 @@
 # Changelog
 
-## 0.6.0b1 – unreleased (pre-release)
+## 0.6.0b1 – 2026-11-16 (pre-release)
 
 Pre-release for wall panels that show the ventilation program and offer one-way ventilation in a
 chosen direction. Neither has run on a real controller yet.
