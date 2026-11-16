@@ -22,7 +22,8 @@ jobs:
       - run: pip install pytest
       - run: pytest tests --ignore=tests/ha
 
-  # Config flow tests against a real Home Assistant core (Linux only: the test package needs fcntl)
+  # The integration in a real Home Assistant core, with pytest-homeassistant (HA core's test
+  # package), pinned in requirements_test.txt to the Home Assistant version under test
   ha-tests:
     runs-on: ubuntu-latest
     steps:
@@ -30,7 +31,7 @@ jobs:
       - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0  # v7
         with:
           python-version: "3.14"
-      - run: pip install pytest-homeassistant-custom-component
+      - run: pip install -r requirements_test.txt
       - run: pytest tests/ha
 
   hassfest:
